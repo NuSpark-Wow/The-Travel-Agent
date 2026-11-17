@@ -341,7 +341,7 @@ const EXAMPLES = {
   '': 'Try a city, a park, a region or a country: Philadelphia, Yellowstone, Tuscany, Japan',
   country: 'Examples: Japan, Iceland, Peru, Italy',
   region: 'Examples: Pennsylvania, Tuscany, Ontario, Bavaria (add the country if it could be more than one)',
-  city: 'Examples: West Chester, PA or Kyoto, Japan (add the state or country)',
+  city: 'Examples: Savannah, Georgia or Kyoto, Japan (add the state or country)',
   area: 'Examples: French Quarter, New Orleans or Napa Valley or Outer Banks'
 };
 document.querySelectorAll('.kind').forEach(b=>b.onclick=()=>{
@@ -370,7 +370,7 @@ async function explore(forced){
           $('choices').appendChild(b);
         });
         const own=document.createElement('button'); own.className='choice'; own.textContent='None of these, let me retype';
-        own.onclick=()=>{ $('choices').innerHTML=''; $('status').textContent='Add the state or country to help, like "West Chester, PA".'; $('place').value=''; $('place').focus({preventScroll:true}); };
+        own.onclick=()=>{ $('choices').innerHTML=''; $('status').textContent='Add the state or country to help, like "Portland, Maine".'; $('place').value=''; $('place').focus({preventScroll:true}); };
         $('choices').appendChild(own);
       } else {
         $('status').textContent="Hmm, I couldn't find that place. Try adding the state or country.";
