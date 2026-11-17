@@ -9,5 +9,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/s",
+      "destination": "/api/share"
+    }
   ]
 }

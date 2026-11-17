@@ -548,14 +548,33 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePage(); });
 /* ---------- share ---------- */
 const SITE_URL = 'https://nusparklearnwow.com';
 const DOOR_WORD = {secret:'secret spot',unique:'thing to do',museums:'museum',restaurants:'restaurant',hikes:'hike',water:'water adventure',beaches:'beach',drives:'scenic drive',trains:'train ride',historic:'historic place',wildlife:'wildlife spot',views:'view'};
-function shareText(p){
+// one message per app: each fits how people post there
+function shareTexts(p){
   const word = DOOR_WORD[state.door] || 'place';
-  const town = state.place.split(',')[0];
-  let t = `Check out this cool ${word} I found on the NuSparkLearnWow Travel Agent: ${p.name} in ${town}!`;
-  if(p.facts && p.facts[0]) t += ` Who knew? ${p.facts[0]}`;
-  const img = p._img;
-  if(img && img.source==='wikimedia' && img.url) t += `\nPhoto: ${img.credit}${img.page?', '+img.page:''}`;
-  return t + `\n${SITE_URL}`;
+  const town = ((state.place || '').split(',')[0] || '').trim();
+  const link = shareLink(p);
+  const tag = town ? '#' + town.replace(/[^A-Za-z0-9]/g,'') : '#WorldTravel';
+  // " in Philadelphia" — left off if the town is missing or already in the name (no "Philadelphia Museum of Art in Philadelphia")
+  const inTown = town && !p.name.toLowerCase().includes(town.toLowerCase()) ? ` in ${town}` : '';
+  const fact = (p.facts && p.facts[0]) ? p.facts[0] : '';
+  const img = p._img, credit = (img && img.source==='wikimedia' && img.url) ? img.credit : '';
+  const intro = `Check out this cool ${word} I found on The NuSparkLearnWow Travel Agent: ${p.name}${inTown}!`;
+  return {
+    facebook: `${intro} 🌍` + (fact ? `\nWho knew? ${fact}` : '') + `\nFind your own hidden gems anywhere: ${link}` + (credit ? `\n📷 Photo: ${credit}` : ''),
+    messenger: `Look what I found! ${p.name}${inTown}, a cool ${word} on The NuSparkLearnWow Travel Agent.` + (fact ? ` Who knew? ${fact}` : '') + `\n${link}`,
+    instagram: intro + (fact ? `\nWho knew? ${fact}` : '') + (credit ? `\n📷 ${credit}` : '') + `\nExplore any place on The Travel Agent at nusparklearnwow.com\n#travel #hiddengems ${tag} #WowWhoKnew #NuSparkLearnWow`,
+    text: `Check this out! ${p.name}${inTown}, a cool ${word} I found on The NuSparkLearnWow Travel Agent. ${link}`,
+    emailSubject: `Check out this cool ${word} I found: ${p.name}${inTown}`,
+    email: `Hi,\n\nI found this on The NuSparkLearnWow Travel Agent and thought of you: ${p.name}${inTown}.` + (fact ? `\n\nWho knew? ${fact}` : '') + `\n\nSee the photo and explore more places here:\n${link}` + (credit ? `\n\nPhoto: ${credit}${img.page ? ' (' + img.page + ')' : ''}` : '') + `\n\nWhat's here? Wow...who knew?`
+  };
+}
+// a share page just for this find, so Facebook and friends show the real photo of the place
+// (uses this tool's own web address; if you add your own domain in Vercel it follows automatically)
+function shareLink(p){
+  const img = p._img && p._img.source==='wikimedia' ? (p._img.url||'') : '';
+  const q = new URLSearchParams({ n:p.name||'', d:DOOR_WORD[state.door]||'place', t:(state.place||'').split(',')[0], f:(p.facts&&p.facts[0])||'' });
+  if(img){ q.set('i', img); q.set('c', (p._img.credit||'').slice(0,120)); }
+  return location.origin + '/s?' + q.toString();
 }
 async function photoFile(p){
   const img = p._img;
@@ -569,15 +588,16 @@ async function photoFile(p){
 }
 let shareCurrent = null;
 function copyText(t){ try{ return navigator.clipboard.writeText(t); }catch(e){ return Promise.resolve(); } }
-function sharePick(p){ openSharePanel(p, shareText(p)); }
-function openSharePanel(p, text){
-  shareCurrent = {p, text};
-  const u = encodeURIComponent(SITE_URL), t = encodeURIComponent(text);
+function sharePick(p){ openSharePanel(p, shareTexts(p)); }
+function openSharePanel(p, texts){
+  shareCurrent = {p, texts, text: texts.facebook};
+  const text = texts.facebook;
+  const u = encodeURIComponent(shareLink(p)), t = encodeURIComponent(text);
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   $('shFb').href = `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
   $('shMs').href = mobile ? `fb-messenger://share/?link=${u}` : 'https://www.messenger.com/';
-  $('shSms').href = `sms:?&body=${t}`;
-  $('shEm').href = `mailto:?subject=${encodeURIComponent('Check out '+p.name)}&body=${t}`;
+  $('shSms').href = `sms:?&body=${encodeURIComponent(texts.text)}`;
+  $('shEm').href = `mailto:?subject=${encodeURIComponent(texts.emailSubject)}&body=${encodeURIComponent(texts.email)}`;
   $('shNote').textContent = '';
   // "Share with the photo" only where the phone can attach files
   $('shPhotoShare').style.display = (navigator.share && p._img && p._img.source==='wikimedia') ? 'inline-block' : 'none';
@@ -585,14 +605,14 @@ function openSharePanel(p, text){
   $('sharebox').scrollIntoView({behavior:'smooth',block:'center'});
 }
 // Messenger and Facebook can't take pre-written text, so copy it for pasting
-['shFb','shMs'].forEach(id=>$(id).addEventListener('click',()=>{ if(shareCurrent){ copyText(shareCurrent.text); $('shNote').textContent='Message copied: paste it into your post.'; } }));
+['shFb','shMs'].forEach(id=>$(id).addEventListener('click',()=>{ if(shareCurrent){ copyText(id==='shFb' ? shareCurrent.texts.facebook : shareCurrent.texts.messenger); $('shNote').textContent = id==='shFb' ? 'Your post is copied: paste it above the photo card.' : 'Message copied: paste it into your chat.'; } }));
 // Instagram has no share link: copy the message and open the photo to save
 $('shIg').onclick=e=>{
   e.preventDefault(); if(!shareCurrent) return;
-  copyText(shareCurrent.text);
+  copyText(shareCurrent.texts.instagram);
   const img = shareCurrent.p._img;
-  if(img && img.source==='wikimedia' && img.page){ window.open(img.page,'_blank','noopener'); $('shNote').textContent='Message copied. Save the photo, then post it on Instagram and paste the message.'; }
-  else { window.open('https://www.instagram.com/','_blank','noopener'); $('shNote').textContent='Message copied: paste it into your Instagram post.'; }
+  if(img && img.source==='wikimedia' && img.page){ window.open(img.page,'_blank','noopener'); $('shNote').textContent='Caption copied, with hashtags. Save the photo, then post it on Instagram and paste the caption.'; }
+  else { window.open('https://www.instagram.com/','_blank','noopener'); $('shNote').textContent='Caption copied, with hashtags: paste it into your Instagram post.'; }
 };
 $('shPhotoShare').onclick=async()=>{
   if(!shareCurrent) return;
