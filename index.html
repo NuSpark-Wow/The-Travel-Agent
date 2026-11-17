@@ -41,6 +41,12 @@
   .btn-navy{background:var(--navy);color:#fff}
   .btn-line{background:#fff;color:var(--navy);border:2px solid var(--navy)}
   .examples{font-size:13px;color:#aab6cc;margin-top:6px}
+  .kinds{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 10px}
+  .kind{background:transparent;border:1.5px solid var(--gold);color:var(--gold2);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px}
+  .kind.on{background:var(--gold);color:var(--navy)}
+  .choices{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+  .choice{background:#fff;color:var(--navy);border:2px solid var(--gold);border-radius:10px;padding:8px 14px;font-weight:700;font-size:15px}
+  .choice:hover{background:var(--gold2)}
   .status{min-height:22px;margin-top:10px;font-weight:700;color:var(--gold2)}
 
   /* Place card */
@@ -139,12 +145,20 @@
   <p class="sub">What's here? Wow...who knew?</p>
   <div class="search">
     <label for="place">Pick a place to explore</label>
+    <div class="kinds" id="kinds">
+      <button class="kind" data-k="country">Country</button>
+      <button class="kind" data-k="region">State / Province / Region</button>
+      <button class="kind" data-k="city">City / Town</button>
+      <button class="kind" data-k="area">Small Area / Landmark</button>
+      <button class="kind on" data-k="">Any Place</button>
+    </div>
     <div class="row">
       <input id="place" type="text" autocomplete="off" aria-label="Place to explore">
       <button class="btn btn-gold" id="go">Explore</button>
     </div>
-    <div class="examples">Try a city, a park, a region or a country: Philadelphia, Yellowstone, Tuscany, Japan</div>
+    <div class="examples" id="examples">Try a city, a park, a region or a country: Philadelphia, Yellowstone, Tuscany, Japan</div>
     <div class="status" id="status" aria-live="polite"></div>
+    <div class="choices" id="choices"></div>
   </div>
 </header>
 
@@ -296,16 +310,47 @@ $('vCont').onclick = ()=>{ if(!muted) audio.play().catch(()=>{}); };
 $('vReplay').onclick = ()=>{ if(muted) return; if(audio.src){ audio.currentTime=0; audio.play().catch(()=>{}); } else speak(lastText); };
 $('vSpeed').oninput = e=>{ audio.playbackRate=parseFloat(e.target.value); $('vSpeedVal').textContent=parseFloat(e.target.value).toFixed(1)+'x'; };
 
+/* ---------- place type buttons ---------- */
+let kind = '';
+const EXAMPLES = {
+  '': 'Try a city, a park, a region or a country: Philadelphia, Yellowstone, Tuscany, Japan',
+  country: 'Examples: Japan, Iceland, Peru, Italy',
+  region: 'Examples: Pennsylvania, Tuscany, Ontario, Bavaria (add the country if it could be more than one)',
+  city: 'Examples: West Chester, PA or Kyoto, Japan (add the state or country)',
+  area: 'Examples: French Quarter, New Orleans or Napa Valley or Outer Banks'
+};
+document.querySelectorAll('.kind').forEach(b=>b.onclick=()=>{
+  kind=b.dataset.k;
+  document.querySelectorAll('.kind').forEach(x=>x.classList.toggle('on',x===b));
+  $('examples').textContent=EXAMPLES[kind];
+});
+
 /* ---------- explore a place ---------- */
-async function explore(){
-  const val = $('place').value.trim();
+async function explore(forced){
+  const val = (typeof forced==='string' ? forced : $('place').value).trim();
+  $('choices').innerHTML='';
   if(val.length<2){ $('status').textContent='Type a place to explore.'; return; }
   $('go').disabled=true;
   $('status').textContent='Checking what makes this place amazing...';
   resetDoorView();
   try{
-    const d = await post('/api/doors',{place:val});
-    if(!d.known){ $('status').textContent="Hmm, I couldn't find that place. Try a city, park, region or country."; return; }
+    const d = await post('/api/doors',{place:val, kind});
+    if(!d.known){
+      if(d.choices && d.choices.length){
+        $('status').textContent='Which one did you mean?';
+        d.choices.forEach(c=>{
+          const b=document.createElement('button'); b.className='choice'; b.textContent=c;
+          b.onclick=()=>{ $('place').value=c; explore(c); };
+          $('choices').appendChild(b);
+        });
+        const own=document.createElement('button'); own.className='choice'; own.textContent='None of these, let me retype';
+        own.onclick=()=>{ $('choices').innerHTML=''; $('status').textContent='Add the state or country to help, like "West Chester, PA".'; $('place').value=''; $('place').focus({preventScroll:true}); };
+        $('choices').appendChild(own);
+      } else {
+        $('status').textContent="Hmm, I couldn't find that place. Try adding the state or country.";
+      }
+      return;
+    }
     state.place = d.place;
     $('place').value = d.place;
     $('status').textContent='';
@@ -444,14 +489,14 @@ $('pcCopy').onclick=()=>{
 };
 
 /* ---------- buttons ---------- */
-$('go').onclick=explore;
+$('go').onclick=()=>explore();
 $('place').addEventListener('keydown',e=>{ if(e.key==='Enter') explore(); });
 $('morePicks').onclick=()=>{ if(state.door) openDoor(state.door,true); };
 $('newPlace').onclick=()=>{
   audio.pause(); resetDoorView();
   state.place=null; $('place').value='';
   ['placebar','voice'].forEach(id=>$(id).style.display='none');
-  $('doors').style.display='none'; $('status').textContent='';
+  $('doors').style.display='none'; $('status').textContent=''; $('choices').innerHTML='';
   $('place').focus({preventScroll:true});
 };
 </script>
