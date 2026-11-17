@@ -121,13 +121,17 @@
   .box.ai .aihint{margin:0 0 8px;font-size:13px;color:var(--muted)}
   .box.ai textarea{width:100%;min-height:110px;font:inherit;font-size:13px;padding:8px;border-radius:8px;border:1px solid var(--line);resize:vertical;margin-bottom:8px}
   .box.ai .btn{padding:8px 14px;font-size:14px}
+  .share{align-self:flex-start;background:var(--navy);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-weight:800;font-size:14px}
+  .photocredit{font-size:11px;color:var(--muted);text-decoration:none}
+  .photocredit:hover{text-decoration:underline}
+  .sharebox{display:none;background:#fff;border:2px solid var(--gold);border-radius:14px;padding:16px;margin:14px 0}
+  .sharebox.show{display:block}
+  .sharebox h3{margin:0 0 8px;font-family:'Playfair Display',serif;color:var(--navy)}
+  .sharebox textarea{width:100%;min-height:110px;font:inherit;font-size:14px;padding:10px;border-radius:10px;border:1px solid var(--line);resize:vertical}
+  .shbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .shbtns a{text-decoration:none;display:inline-block}
   .more{display:none;gap:10px;justify-content:center;margin:18px 0;flex-wrap:wrap}
 
-  /* Postcard prompt */
-  .postcard{display:none;background:#fff;border:2px dashed var(--gold);border-radius:14px;padding:16px;margin-top:10px}
-  .postcard h3{margin:0 0 4px;font-family:'Playfair Display',serif;color:var(--navy)}
-  .postcard p{margin:0 0 8px;color:var(--muted);font-size:14px}
-  .postcard textarea{width:100%;min-height:120px;font:inherit;font-size:14px;padding:10px;border-radius:10px;border:1px solid var(--line);resize:vertical}
 
   .fine{font-size:12px;color:var(--muted);text-align:center;margin-top:24px;line-height:1.5}
   .fine a{color:var(--navy)}
@@ -197,7 +201,8 @@
           <div class="wow" id="pgWow" style="font-size:18px;margin:6px 0 10px"></div>
           <p class="story" id="pgStory"></p>
           <div class="check" id="pgCheck"></div>
-          <div class="cbtns" style="margin-top:12px"><button class="listen" id="pgListen">🔊 Listen</button></div>
+          <div class="cbtns" style="margin-top:12px"><button class="share" id="pgShare">📤 Share</button><button class="listen" id="pgListen">🔊 Listen</button></div>
+          <a class="photocredit" id="pgCredit" target="_blank" rel="noopener" style="display:none;margin-top:8px"></a>
         </div>
         <div class="side">
           <div class="box"><h5>Interesting Facts</h5><ol id="pgFacts"></ol></div>
@@ -217,14 +222,21 @@
 
   <div class="more" id="more">
     <button class="btn btn-navy" id="morePicks">Show More Picks</button>
-    <button class="btn btn-line" id="makePostcard">Make a Postcard</button>
   </div>
 
-  <div class="postcard" id="postcard">
-    <h3>Take it with you</h3>
-    <p>Copy this and paste it into ChatGPT or Gemini to create your own postcard.</p>
-    <textarea id="pcText" readonly></textarea>
-    <button class="btn btn-gold" id="pcCopy" style="margin-top:8px">Copy</button>
+
+  <div class="sharebox" id="sharebox">
+    <h3>Share this find</h3>
+    <textarea id="shText" readonly></textarea>
+    <div class="shbtns">
+      <a class="btn btn-navy" id="shFb" target="_blank" rel="noopener">Facebook</a>
+      <a class="btn btn-navy" id="shX" target="_blank" rel="noopener">X</a>
+      <a class="btn btn-navy" id="shWa" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="btn btn-navy" id="shEm">Email</a>
+      <button class="btn btn-gold" id="shCopy">Copy message</button>
+      <a class="btn btn-line" id="shPhoto" target="_blank" rel="noopener">Open the photo</a>
+      <button class="btn btn-line" id="shClose">Close</button>
+    </div>
   </div>
 
   <p class="fine">
@@ -377,7 +389,8 @@ function buildDoors(open, swaps){
 }
 function resetDoorView(){
   state.door=null; state.shown=[]; state.picks=[];
-  ['doorhead','more','postcard'].forEach(id=>$(id).style.display='none');
+  ['doorhead','more'].forEach(id=>$(id).style.display='none');
+  $('sharebox').classList.remove('show');
   $('page').classList.remove('show'); $('picks').style.display='grid';
   $('picks').innerHTML=''; $('working').textContent='';
 }
@@ -417,16 +430,22 @@ function addCard(p){
       ${p.check?'<div class="check">⚠ Businesses change. Confirm before you go.</div>':''}
       <div class="cbtns">
         <button class="openpage">📖 Open the Page</button>
+        <button class="share">📤 Share</button>
         <button class="listen">🔊 Listen</button>
       </div>
+      <a class="photocredit" target="_blank" rel="noopener" style="display:none"></a>
     </div>`;
   c.querySelector('.listen').onclick=()=>speak(`${p.name}. ${p.wow}. ${p.story} Who knew? ${facts[0]||''}`);
   c.querySelector('.openpage').onclick=()=>openPage(p,c);
+  c.querySelector('.share').onclick=e=>sharePick(p,e.currentTarget);
   $('picks').appendChild(c);
   const ph = c.querySelector('.photo');
   getImage(p.image_query||(p.name+' '+state.place)).then(img=>{
     p._img = img;
-    if(img&&img.url){ ph.style.backgroundImage=`url("${img.url}")`; ph.innerHTML=`<span class="credit">${esc(img.credit||'')}</span>`; }
+    if(img&&img.url){
+      ph.style.backgroundImage=`url("${img.url}")`; ph.innerHTML=`<span class="credit">${esc(img.credit||'')}</span>`;
+      if(img.page){ const pc=c.querySelector('.photocredit'); pc.href=img.page; pc.textContent='Photo credit: '+(img.credit||'source'); pc.style.display='block'; }
+    }
     else { ph.classList.add('none'); ph.textContent=DOORS.find(x=>x.id===state.door)?.ic||'📍'; }
   });
 }
@@ -453,9 +472,11 @@ Share its history, what makes it special, surprising facts, and what visitors se
 Include links to real photos of it, and its official website if it has one.
 Please double-check facts and note anything that may have changed recently.`;
   $('pgAICopy').textContent='Copy';
+  $('pgShare').onclick=e=>sharePick(p,e.currentTarget);
+  if(p._img&&p._img.page){ $('pgCredit').href=p._img.page; $('pgCredit').textContent='Photo credit: '+(p._img.credit||'source'); $('pgCredit').style.display='block'; } else $('pgCredit').style.display='none';
   $('pgListen').onclick=()=>speak(`${p.name}. ${p.story} Here's Mr. Paul's take. ${p.paul||''}`);
   // Show the page in place of the picks (works inside an embedded frame - no pop-up)
-  $('picks').style.display='none'; $('more').style.display='none'; $('postcard').style.display='none';
+  $('picks').style.display='none'; $('more').style.display='none';
   $('page').classList.add('show');
   $('page').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -471,22 +492,61 @@ $('pgAICopy').onclick=()=>{
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePage(); });
 
-/* ---------- postcard prompt ---------- */
-$('makePostcard').onclick=()=>{
-  const names = state.picks.slice(0,4).map(p=>p.name).join(', ');
-  const dr = DOORS.find(x=>x.id===state.door);
-  $('pcText').value =
-`Create a vintage-style travel postcard image for ${state.place}.
-Theme: ${dr?dr.nm:'highlights'}.
-Show these real places in small illustrated scenes: ${names}.
-Big bold lettering across the top: "Greetings from ${state.place.split(',')[0]}".
-Warm, colorful, realistic illustrated style. Landscape 3:2.
-Small text at the bottom: "Discovered with The Travel Agent | nusparklearnwow.com"`;
-  $('postcard').style.display='block';
-};
-$('pcCopy').onclick=()=>{
-  navigator.clipboard.writeText($('pcText').value).then(()=>{ $('pcCopy').textContent='Copied!'; setTimeout(()=>$('pcCopy').textContent='Copy',1500); });
-};
+/* ---------- share ---------- */
+const SITE_URL = 'https://nusparklearnwow.com';
+const DOOR_WORD = {secret:'secret spot',unique:'thing to do',museums:'museum',restaurants:'restaurant',hikes:'hike',water:'water adventure',beaches:'beach',drives:'scenic drive',trains:'train ride',historic:'historic place',wildlife:'wildlife spot',views:'view'};
+function shareText(p){
+  const word = DOOR_WORD[state.door] || 'place';
+  const town = state.place.split(',')[0];
+  let t = `Check out this cool ${word} I found on the NuSparkLearnWow Travel Agent: ${p.name} in ${town}!`;
+  if(p.facts && p.facts[0]) t += ` Who knew? ${p.facts[0]}`;
+  const img = p._img;
+  if(img && img.source==='wikimedia' && img.url) t += `\nPhoto: ${img.credit}${img.page?', '+img.page:''}`;
+  return t + `\n${SITE_URL}`;
+}
+async function photoFile(p){
+  const img = p._img;
+  if(!img || img.source!=='wikimedia' || !img.url) return null;   // only share photos we're allowed to
+  try{
+    const r = await fetch(img.url); if(!r.ok) return null;
+    const blob = await r.blob();
+    const ext = (blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
+    return new File([blob], p.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.'+ext, {type:blob.type});
+  }catch(e){ return null; }
+}
+async function sharePick(p, btn){
+  const text = shareText(p);
+  if(navigator.share){
+    const old = btn.textContent; btn.textContent='Getting photo...';
+    const file = await photoFile(p);
+    btn.textContent = old;
+    try{
+      if(file && navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], text, title:p.name});
+      } else {
+        await navigator.share({text, title:p.name});
+      }
+      return;
+    }catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  openSharePanel(p, text);
+}
+function openSharePanel(p, text){
+  const u = encodeURIComponent(SITE_URL), t = encodeURIComponent(text);
+  $('shText').value = text;
+  $('shFb').href = `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
+  $('shX').href = `https://twitter.com/intent/tweet?text=${t}`;
+  $('shWa').href = `https://wa.me/?text=${t}`;
+  $('shEm').href = `mailto:?subject=${encodeURIComponent('Check out '+p.name)}&body=${t}`;
+  const img = p._img;
+  $('shPhoto').style.display = img && img.source==='wikimedia' && img.page ? 'inline-block' : 'none';
+  if(img && img.page) $('shPhoto').href = img.page;
+  $('shCopy').textContent='Copy message';
+  $('sharebox').classList.add('show');
+  $('sharebox').scrollIntoView({behavior:'smooth',block:'center'});
+}
+$('shClose').onclick=()=>$('sharebox').classList.remove('show');
+$('shCopy').onclick=()=>navigator.clipboard.writeText($('shText').value).then(()=>{ $('shCopy').textContent='Copied!'; });
 
 /* ---------- buttons ---------- */
 $('go').onclick=()=>explore();
