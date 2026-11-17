@@ -19,7 +19,14 @@ Sheet 2 - "What makes it special":
 - special: 3 short sections, each a heading and 2-3 sentences, chosen to fit the place (e.g. Culture & Food, Nature & Landscape, Famous Faces, Architecture, Wildlife).
 - whoknew: 3 surprising "Wow...who knew?" facts.
 
+If the area includes the surrounding region, add a glance item labeled "Nearby towns" naming the main suburbs and towns covered, and let Sheet 2 include highlights from them.
+
 Also give image_query: the best search words to find a real, iconic photo of this place.`;
+
+const SCOPE_NOTE = {
+  proper: 'Stay within the city or place itself (city proper). Do not include suburbs or nearby towns.',
+  area: 'Cover the place AND its surrounding area: suburbs and nearby towns within about an hour\'s drive (like a TV market / metro area). Always name the town for anything outside the main place.'
+};
 
 const SCHEMA = {
   type: 'object',
@@ -37,10 +44,10 @@ const SCHEMA = {
 module.exports = async (req, res) => {
   if (!guard(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-  const { place } = readBody(req);
+  const { place, scope } = readBody(req);
   if (!place) return res.status(400).json({ error: 'Missing place.' });
   try {
-    const out = await askJSON(SYSTEM, 'Place: ' + String(place).slice(0, 120), SCHEMA, { maxTokens: 4000 });
+    const out = await askJSON(SYSTEM, 'Place: ' + String(place).slice(0, 120) + '\nArea: ' + (SCOPE_NOTE[scope] || SCOPE_NOTE.proper), SCHEMA, { maxTokens: 4000 });
     out.glance = (out.glance || []).slice(0, 6);
     out.story = (out.story || []).slice(0, 2);
     out.special = (out.special || []).slice(0, 3);

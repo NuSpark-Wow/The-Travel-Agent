@@ -30,6 +30,11 @@ views = Must-See Landscapes & Views
 Mark a door false if there is honestly nothing real to show - never stretch or invent. For each false door, write a short friendly swap line pointing to a door that does fit, e.g. "No beaches here - try On the Water."
 Fill in: known, choices, place ("Corrected Place Name, Region/Country"), wow (one short exciting sentence, under 30 words), doors (true/false for all 12), swaps (a line for each false door).`;
 
+const SCOPE_NOTE = {
+  proper: 'Stay within the city or place itself (city proper). Do not include suburbs or nearby towns.',
+  area: 'Cover the place AND its surrounding area: suburbs and nearby towns within about an hour\'s drive (like a TV market / metro area). Always name the town for anything outside the main place.'
+};
+
 const doorProps = {};
 DOORS.forEach(d => { doorProps[d] = { type: 'boolean' }; });
 const SCHEMA = {
@@ -48,14 +53,15 @@ const SCHEMA = {
 module.exports = async (req, res) => {
   if (!guard(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-  const { place, kind } = readBody(req);
+  const { place, kind, scope } = readBody(req);
   if (!place || String(place).trim().length < 2) {
     return res.status(400).json({ error: 'Type a place to explore.' });
   }
   try {
     const kinds = { country: 'a country', region: 'a state, province or region', city: 'a city or town', area: 'a small area or landmark (neighborhood, island, park, valley)' };
     const hint = kinds[kind] ? '\nThe visitor says this is ' + kinds[kind] + '.' : '';
-    const out = await askJSON(SYSTEM, 'Place: ' + String(place).slice(0, 120) + hint, SCHEMA, { maxTokens: 1500 });
+    const area = '\nArea to judge the doors by: ' + (SCOPE_NOTE[scope] || SCOPE_NOTE.proper);
+    const out = await askJSON(SYSTEM, 'Place: ' + String(place).slice(0, 120) + hint + area, SCHEMA, { maxTokens: 1500 });
     out.doors = out.doors || {};
     DOORS.forEach(d => { if (typeof out.doors[d] !== 'boolean') out.doors[d] = true; });
     out.swaps = out.swaps || {};

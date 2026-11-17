@@ -17,6 +17,10 @@ const DOOR_NAMES = {
 };
 
 // Doors where places open, close or change - check the live web first
+const SCOPE_NOTE = {
+  proper: 'Stay within the city or place itself (city proper). Do not include suburbs or nearby towns.',
+  area: 'Cover the place AND its surrounding area: suburbs and nearby towns within about an hour\'s drive (like a TV market / metro area). Always name the town for anything outside the main place.'
+};
 const LIVE_CHECK = ['restaurants', 'water', 'beaches', 'unique', 'secret'];
 
 const SYSTEM = `You are The Travel Agent on NuSparkLearnWow - a "what's here? wow!" discovery guide.
@@ -67,7 +71,7 @@ const SCHEMA = {
 module.exports = async (req, res) => {
   if (!guard(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-  const { place, door, exclude } = readBody(req);
+  const { place, door, exclude, scope } = readBody(req);
   if (!place || !DOOR_NAMES[door]) return res.status(400).json({ error: 'Missing place or door.' });
 
   const skip = Array.isArray(exclude) && exclude.length
@@ -75,6 +79,7 @@ module.exports = async (req, res) => {
     : '';
   const user = `Place: ${String(place).slice(0, 120)}
 Door: ${DOOR_NAMES[door]}
+Area: ${SCOPE_NOTE[scope] || SCOPE_NOTE.proper}
 Give 6 picks.${skip}`;
 
   try {
