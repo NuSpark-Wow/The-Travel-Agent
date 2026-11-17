@@ -1,5 +1,5 @@
 // Step 1: check the place and decide which of the 12 doors fit it
-const { guard, askClaude, parseJSON, readBody, reason } = require('./_lib');
+const { guard, askJSON, readBody, reason } = require('./_lib');
 
 const DOORS = [
   'secret', 'unique', 'museums', 'restaurants', 'hikes', 'water',
@@ -28,8 +28,22 @@ wildlife = Wildlife & Parks
 views = Must-See Landscapes & Views
 
 Mark a door false if there is honestly nothing real to show - never stretch or invent. For each false door, write a short friendly swap line pointing to a door that does fit, e.g. "No beaches here - try On the Water."
-Reply with ONLY this JSON:
-{"known":true,"choices":[],"place":"Corrected Place Name, Region/Country","wow":"One short, exciting 'wow' sentence about this place (under 30 words)","doors":{"secret":true,...all 12},"swaps":{"beaches":"No beaches here - try On the Water."}}`;
+Fill in: known, choices, place ("Corrected Place Name, Region/Country"), wow (one short exciting sentence, under 30 words), doors (true/false for all 12), swaps (a line for each false door).`;
+
+const doorProps = {};
+DOORS.forEach(d => { doorProps[d] = { type: 'boolean' }; });
+const SCHEMA = {
+  type: 'object',
+  properties: {
+    known: { type: 'boolean' },
+    choices: { type: 'array', items: { type: 'string' } },
+    place: { type: 'string' },
+    wow: { type: 'string' },
+    doors: { type: 'object', properties: doorProps },
+    swaps: { type: 'object', additionalProperties: { type: 'string' } }
+  },
+  required: ['known', 'choices', 'place', 'wow', 'doors']
+};
 
 module.exports = async (req, res) => {
   if (!guard(req, res)) return;
@@ -41,8 +55,7 @@ module.exports = async (req, res) => {
   try {
     const kinds = { country: 'a country', region: 'a state, province or region', city: 'a city or town', area: 'a small area or landmark (neighborhood, island, park, valley)' };
     const hint = kinds[kind] ? '\nThe visitor says this is ' + kinds[kind] + '.' : '';
-    const text = await askClaude(SYSTEM, 'Place: ' + String(place).slice(0, 120) + hint, { maxTokens: 900 });
-    const out = parseJSON(text);
+    const out = await askJSON(SYSTEM, 'Place: ' + String(place).slice(0, 120) + hint, SCHEMA, { maxTokens: 1500 });
     out.doors = out.doors || {};
     DOORS.forEach(d => { if (typeof out.doors[d] !== 'boolean') out.doors[d] = true; });
     out.swaps = out.swaps || {};

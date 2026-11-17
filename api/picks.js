@@ -1,5 +1,5 @@
 // Step 2: the picks behind one door
-const { guard, askClaude, parseJSON, readBody, reason } = require('./_lib');
+const { guard, askJSON, readBody, reason } = require('./_lib');
 
 const DOOR_NAMES = {
   secret: 'Secret Spots - hidden places most visitors miss',
@@ -34,9 +34,35 @@ Rules:
 - "nearby": 2-3 real places close by worth seeing, each with a one-line hook (e.g. "A 5-minute walk: Elfreth's Alley, America's oldest residential street"). No directions or travel details.
 - "paul": "Mr. Paul's Take" - 2-3 warm, friendly sentences on why you, your kids or your family will love it. Speak as Mr. Paul, a teacher who loves discovery. NEVER claim Mr. Paul personally visited or experienced the place.
 
-Reply with ONLY this JSON:
+Answer shape (for reference):
 {"intro":"2 short spoken sentences introducing this door for this place, warm and exciting (under 45 words)",
 "picks":[{"name":"Exact real name","area":"Neighborhood/area or nearby town","wow":"One punchy wow line (under 15 words)","story":"3-4 sentences on why it's special","facts":["fact 1","fact 2"],"nearby":[{"name":"Real place","hook":"one line"}],"paul":"Mr. Paul's Take","image_query":"Best search words to find a real photo of this exact place","check":false}]}`;
+
+const SCHEMA = {
+  type: 'object',
+  properties: {
+    intro: { type: 'string' },
+    picks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          area: { type: 'string' },
+          wow: { type: 'string' },
+          story: { type: 'string' },
+          facts: { type: 'array', items: { type: 'string' } },
+          nearby: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, hook: { type: 'string' } }, required: ['name', 'hook'] } },
+          paul: { type: 'string' },
+          image_query: { type: 'string' },
+          check: { type: 'boolean' }
+        },
+        required: ['name', 'area', 'wow', 'story', 'facts', 'nearby', 'paul', 'image_query', 'check']
+      }
+    }
+  },
+  required: ['intro', 'picks']
+};
 
 module.exports = async (req, res) => {
   if (!guard(req, res)) return;
@@ -52,11 +78,10 @@ Door: ${DOOR_NAMES[door]}
 Give 6 picks.${skip}`;
 
   try {
-    const text = await askClaude(SYSTEM, user, {
+    const out = await askJSON(SYSTEM, user, SCHEMA, {
       useSearch: LIVE_CHECK.includes(door),
-      maxTokens: 6000
+      maxTokens: 8000
     });
-    const out = parseJSON(text);
     out.picks = (out.picks || []).slice(0, 6);
     if (LIVE_CHECK.includes(door) && door === 'restaurants') {
       out.picks.forEach(p => { p.check = true; });
