@@ -3,7 +3,7 @@ const { guard } = require('./_lib');
 
 async function wikimedia(q) {
   const url = 'https://commons.wikimedia.org/w/api.php?action=query&format=json' +
-    '&generator=search&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|mime|extmetadata' +
+    '&generator=search&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|mime|extmetadata&iiextmetadatafilter=Artist|LicenseShortName' +
     '&iiurlwidth=900&gsrsearch=' + encodeURIComponent(q);
   const r = await fetch(url, { headers: { 'User-Agent': 'NuSparkLearnWow-TravelAgent/1.0 (nusparklearnwow.com)' } });
   if (!r.ok) return null;
@@ -17,7 +17,15 @@ async function wikimedia(q) {
     const artist = info.extmetadata && info.extmetadata.Artist
       ? String(info.extmetadata.Artist.value).replace(/<[^>]+>/g, '').trim().slice(0, 60)
       : '';
-    return { url: info.thumburl || info.url, credit: 'Wikimedia Commons' + (artist ? ' / ' + artist : '') };
+    const license = info.extmetadata && info.extmetadata.LicenseShortName
+      ? String(info.extmetadata.LicenseShortName.value).replace(/<[^>]+>/g, '').trim()
+      : '';
+    return {
+      url: info.thumburl || info.url,
+      credit: (artist ? artist + ' / ' : '') + 'Wikimedia Commons' + (license ? ' (' + license + ')' : ''),
+      page: info.descriptionurl || '',
+      source: 'wikimedia'
+    };
   }
   return null;
 }
@@ -32,7 +40,7 @@ async function serper(q) {
   if (!r.ok) return null;
   const data = await r.json();
   const img = (data.images || []).find(i => /^https:/.test(i.imageUrl || ''));
-  return img ? { url: img.imageUrl, credit: img.source || img.domain || 'Web' } : null;
+  return img ? { url: img.imageUrl, credit: img.source || img.domain || 'Web', page: img.link || '', source: 'web' } : null;
 }
 
 module.exports = async (req, res) => {
