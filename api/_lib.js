@@ -69,9 +69,20 @@ function parseJSON(text) {
   return JSON.parse(text.slice(a, b + 1));
 }
 
+// Turn an AI error into a plain-English reason (no secrets shown)
+function reason(e) {
+  const m = String((e && e.message) || '');
+  if (!process.env.ANTHROPIC_API_KEY) return 'Setup needed: ANTHROPIC_API_KEY is missing in Vercel.';
+  if (/401|authentication|invalid x-api-key/i.test(m)) return 'Setup needed: the ANTHROPIC_API_KEY in Vercel is not valid.';
+  if (/404|not_found|model/i.test(m)) return 'Setup needed: the AI model name is not available. Set ANTHROPIC_MODEL in Vercel.';
+  if (/429|rate|overloaded|529/i.test(m)) return 'The AI is busy right now. Please try again in a moment.';
+  if (/JSON/i.test(m)) return 'The answer came back scrambled. Please try again.';
+  return 'Something went wrong. Please try again.';
+}
+
 function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   try { return JSON.parse(req.body || '{}'); } catch (e) { return {}; }
 }
 
-module.exports = { guard, askClaude, parseJSON, readBody };
+module.exports = { guard, askClaude, parseJSON, readBody, reason };

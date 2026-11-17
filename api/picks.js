@@ -1,5 +1,5 @@
 // Step 2: the picks behind one door
-const { guard, askClaude, parseJSON, readBody } = require('./_lib');
+const { guard, askClaude, parseJSON, readBody, reason } = require('./_lib');
 
 const DOOR_NAMES = {
   secret: 'Secret Spots - hidden places most visitors miss',
@@ -63,6 +63,6 @@ Give 6 picks.${skip}`;
     }
     res.status(200).json(out);
   } catch (e) {
-    res.status(500).json({ error: 'Could not open that door right now. Please try again.' });
+    res.status(500).json({ error: reason(e) });
   }
 };
