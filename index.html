@@ -332,7 +332,8 @@ async function getImage(q){
   }catch(e){ return null; }
 }
 function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function sendHeight(){ try{ parent.postMessage({type:'nuspark-resize',height:document.documentElement.scrollHeight},'*'); }catch(e){} }
+function sendHeight(){ try{ parent.postMessage({type:'nuspark-resize',height:Math.ceil(document.body.getBoundingClientRect().height)+8},'*'); }catch(e){} }
+window.addEventListener('load',sendHeight);
 new ResizeObserver(sendHeight).observe(document.body);
 
 /* ---------- place type buttons ---------- */
