@@ -45,7 +45,9 @@ async function askJSON(system, user, schema, { useSearch = false, maxTokens = 30
     system: system + '\n\nWhen you are ready, call the submit tool with your answer. Do not write the answer as text.',
     messages: [{ role: 'user', content: user }],
     tools,
-    tool_choice: useSearch ? { type: 'auto' } : { type: 'tool', name: 'submit' }
+    tool_choice: { type: 'auto' },
+    // Thinking off: faster replies, and it can't eat the answer's space
+    thinking: { type: 'disabled' }
   };
 
   let lastErr;
@@ -74,6 +76,7 @@ async function askJSON(system, user, schema, { useSearch = false, maxTokens = 30
       lastErr = e;
       console.error('askJSON attempt ' + (attempt + 1) + ' failed:', e.message);
       if (/AI error (401|403|404)/.test(e.message)) break; // setup problems: no point retrying
+      if (/AI error 400/.test(e.message)) delete body.thinking; // retry the plain way
     }
   }
   throw lastErr;
