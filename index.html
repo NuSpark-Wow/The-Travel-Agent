@@ -164,6 +164,13 @@
   .copy b{color:var(--navy);font-size:14px}
   .copy .msg{white-space:pre-wrap;font-size:13px;line-height:1.45;color:#333;word-break:break-word}
   .copy button{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:13px;cursor:pointer;flex:0 0 auto}
+  #sharebox .icons,#shPhotoShare,#shNote{display:none!important}
+  .copy.app .apph{display:flex;align-items:center;gap:10px;font-size:17px}.copy.app .apph span{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center}.copy.app .apph svg{width:20px;height:20px}
+  .appbtns{margin-top:10px}.copy.app button.go{font-size:16px;padding:10px 18px;border-radius:999px;border:none;font-weight:800;cursor:pointer}
+  .copy.app .picnote{font-size:14px;color:#4b5563;margin-top:8px;min-height:0}
+  .cbs{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .copy button.pic{background:var(--gold);color:var(--navy)}
+  .picnote{font-size:12.5px;color:#6b7280;margin-top:6px}
   .copy button.done{background:#1d7a3a}
   .shbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center}
   .icons{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:6px 0}
@@ -627,19 +634,25 @@ function openSharePanel(p, texts){
   $('shSms').href = `sms:?&body=${encodeURIComponent(texts.text)}`;
   $('shEm').href = `mailto:?subject=${encodeURIComponent(texts.emailSubject)}&body=${encodeURIComponent(texts.email)}`;
   $('shNote').textContent = '';
-  // ready-made messages under the icons, each with its own Copy button
-  const shown = [['Facebook post', texts.facebook], ['Instagram caption', texts.instagram], ['Messenger or text message', texts.messenger], ['Email subject', texts.emailSubject], ['Email message', texts.email]];
-  const cp = $('shCopies'); cp.innerHTML = '<p class="lead">Or copy a ready-made message and paste it anywhere:</p>';
-  shown.forEach(([label, msg]) => {
-    const d = document.createElement('div'); d.className = 'copy';
-    d.innerHTML = '<div class="top"><b></b><button type="button">Copy</button></div><div class="msg"></div>';
-    d.querySelector('b').textContent = label; d.querySelector('.msg').textContent = msg;
-    const b = d.querySelector('button');
-    b.onclick = () => { copyText(msg); b.textContent = 'Copied ✓'; b.classList.add('done'); setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 2000); };
+  // one card per app: the app, a ready-made message, and one Share button that brings the right-size picture along
+  const ICON = { facebook: $('shFb').querySelector('span').outerHTML, instagram: $('shIg').querySelector('span').outerHTML, messenger: $('shMs').querySelector('span').outerHTML, email: $('shEm').querySelector('span').outerHTML };
+  const APPS = [
+    ['facebook', 'Facebook', texts.facebook, 'Share on Facebook'],
+    ['instagram', 'Instagram', texts.instagram, 'Share on Instagram'],
+    ['messenger', 'Messenger, texts and WhatsApp', texts.messenger, 'Share in a message'],
+    ['email', 'Email', texts.email, 'Share by email']
+  ];
+  const cp = $('shCopies'); cp.innerHTML = '<p class="lead">Pick where to share. Each one comes with a picture made for that app. Use our message or write your own.</p>';
+  shareCurrent.pics = {}; const _st = shareCurrent; ['facebook','instagram','messenger','email'].forEach(k => { _st.pics[k] = makeCardPicture(p, k).catch(() => null).then(b => { _st.pics[k+'_done'] = b; return b; }); });
+  shareCurrent.pics.email = shareCurrent.pics.facebook;
+  APPS.forEach(([key, label, msg, btnLabel]) => {
+    const d = document.createElement('div'); d.className = 'copy app';
+    d.innerHTML = '<div class="top"><b class="apph"></b></div><div class="msg"></div><div class="appbtns"><button type="button" class="pic go"></button></div><div class="picnote"></div>';
+    d.querySelector('.apph').innerHTML = ICON[key] + ' ' + esc(label); d.querySelector('.msg').textContent = msg;
+    const go = d.querySelector('.go'); go.textContent = '📤 ' + btnLabel;
+    go.onclick = () => shareToApp(key, msg, go, d.querySelector('.picnote'));
     cp.appendChild(d);
   });
-  // "Share with the photo" only where the phone can attach files
-  $('shPhotoShare').style.display = (navigator.share && p._img && p._img.source==='wikimedia') ? 'inline-block' : 'none';
   $('sharebox').classList.add('show');
   $('sharebox').scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -726,6 +739,92 @@ $('ovListen').onclick = ()=>{ const o=state.ov; if(!o) return; const short=(stat
 $('pgListen').onclick = ()=>{ const p=state.pagePick; if(!p) return;
   const text = [p.name+'.', p.wow||'', p.story||'', (p.facts||[]).length?'Interesting facts.':'', ...(p.facts||[]), p.paul?("Mr. Paul's take. "+p.paul):''].filter(Boolean).join(' ');
   voicePlay(p.name, text, $('pgListen')); };
+
+/* ---------- share pictures sized for each app, drawn in the browser ---------- */
+const CARD_SIZES = {
+  facebook:  [1200, 630,  'Wide picture sized for a Facebook post.'],
+  instagram: [1080, 1350, 'Tall 4:5 picture, the size Instagram posts look best at.'],
+  messenger: [1080, 1080, 'Square picture that fills the screen in Messenger and texts.'],
+  email:     [1200, 630,  'Downloads to your device so you can attach it to your email.']
+};
+async function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=rej; im.src=src; }); }
+function wrapLines(ctx, text, maxW, maxLines){ const words=text.split(' '), lines=[]; let cur='';
+  for(const w of words){ const t=cur?cur+' '+w:w; if(ctx.measureText(t).width>maxW && cur){ lines.push(cur); cur=w; } else cur=t; }
+  if(cur) lines.push(cur); if(lines.length>maxLines){ lines.length=maxLines; lines[maxLines-1]=lines[maxLines-1].replace(/\s+\S*$/,'')+'…'; } return lines; }
+async function makeCardPicture(p, size){
+  const [W,H] = CARD_SIZES[size], c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
+  try{ await document.fonts.load('800 40px Nunito'); await document.fonts.load('600 20px Nunito'); }catch(e){}
+  // photo: the pick's free photo (through our own address), otherwise the Travel Agent banner
+  let im=null; const free = p._img && p._img.source==='wikimedia' && p._img.url;
+  try{ im = await loadImg(free ? '/api/photo?u='+encodeURIComponent(p._img.url) : 'banner1.png'); }catch(e){ try{ im=await loadImg('banner1.png'); }catch(e2){} }
+  g.fillStyle='#0f1f3d'; g.fillRect(0,0,W,H);
+  if(im){ const s=Math.max(W/im.width,H/im.height), dw=im.width*s, dh=im.height*s; g.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh); }
+  const top=g.createLinearGradient(0,0,0,H*0.3); top.addColorStop(0,'rgba(15,31,61,.6)'); top.addColorStop(1,'rgba(15,31,61,0)'); g.fillStyle=top; g.fillRect(0,0,W,H*0.3);
+  const bot=g.createLinearGradient(0,H*0.4,0,H); bot.addColorStop(0,'rgba(15,31,61,0)'); bot.addColorStop(1,'rgba(15,31,61,.95)'); g.fillStyle=bot; g.fillRect(0,H*0.4,W,H*0.6);
+  const u=Math.min(W,H)/630, pad=Math.round(44*u*(W>H?1:1.1));
+  // tag pill
+  g.font=`800 ${Math.round(22*u)}px Nunito, sans-serif`; const tag='NUSPARKLEARNWOW · THE TRAVEL AGENT'; g.letterSpacing='2px';
+  const tw=g.measureText(tag).width, ph=Math.round(44*u), pr=ph/2; g.fillStyle='rgba(15,31,61,.6)'; g.strokeStyle='#d4a937'; g.lineWidth=Math.max(2,3*u);
+  g.beginPath(); g.roundRect(pad,pad,tw+pr*2,ph,pr); g.fill(); g.stroke(); g.fillStyle='#f3d27a'; g.textBaseline='middle'; g.fillText(tag,pad+pr,pad+ph/2);
+  // bottom text, built upward
+  g.textBaseline='alphabetic'; g.letterSpacing='0px'; let y=H-pad;
+  const credit = free && p._img.credit ? 'Photo: '+p._img.credit : '';
+  if(credit){ g.font=`600 ${Math.round(20*u)}px Nunito, sans-serif`; g.fillStyle='#d9dfea'; wrapLines(g,credit,W-pad*2,2).reverse().forEach(l=>{ g.fillText(l,pad,y); y-=Math.round(26*u); }); y-=Math.round(6*u); }
+  const fitFont=(wt,px,txt)=>{ let f=px; g.font=`${wt} ${f}px Nunito, sans-serif`; while(g.measureText(txt).width>W-pad*2 && f>10){ f-=1; g.font=`${wt} ${f}px Nunito, sans-serif`; } return f; };
+  const tagline='What’s here? Wow…who knew?  nusparklearnwow.com'; fitFont(700,Math.round(26*u),tagline); g.fillStyle='#ffffff'; g.fillText(tagline,pad,y); y-=Math.round(46*u);
+  const name=p.name||'A cool place', fs=Math.round((name.length>40?56:name.length>26?64:74)*u*(W<=H?1.1:1));
+  g.font=`800 ${fs}px Nunito, sans-serif`; g.fillStyle='#ffffff'; wrapLines(g,name,W-pad*2,3).reverse().forEach(l=>{ g.fillText(l,pad,y); y-=Math.round(fs*1.08); });
+  const town=(state.place||'').split(',')[0], word=DOOR_WORD[state.door]||'place';
+  const eyebrow=('A cool '+word+' I found'+(town&&!name.toLowerCase().includes(town.toLowerCase())?' in '+town:'')).toUpperCase();
+  g.letterSpacing='1.5px'; fitFont(800,Math.round(24*u),eyebrow); g.fillStyle='#f3d27a'; g.fillText(eyebrow,pad,y+Math.round(8*u));
+  return new Promise(res=>c.toBlob(b=>res(b),'image/jpeg',0.9));
+}
+async function getCardPicture(p, size, btn){
+  const old=btn.textContent; btn.textContent='Making it...'; btn.disabled=true;
+  try{
+    const blob=await makeCardPicture(p,size); if(!blob) throw new Error('no picture');
+    const fname=(p.name||'travel-find').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-'+size+'.jpg', file=new File([blob],fname,{type:'image/jpeg'});
+    const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if(size!=='email' && mobile && navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); }catch(e){} }
+    else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },4000); }
+    btn.textContent='✓ Ready'; setTimeout(()=>{ btn.textContent=old; btn.disabled=false; },2000);
+  }catch(e){ btn.textContent='Try again'; btn.disabled=false; setTimeout(()=>btn.textContent=old,2500); }
+}
+
+/* one tap: copy the message + share the picture (phone) or save it and open the app (computer) */
+const APP_URL = { facebook:'https://www.facebook.com/', instagram:'https://www.instagram.com/', messenger:'https://www.messenger.com/' };
+const APP_NEXT = {
+  facebook:  ['Choose Facebook in the menu. The picture is attached. Our message is copied: paste it, or write your own.', 'The picture is saved to your downloads and Facebook is opening. Start a post, add the picture, then paste our message or write your own.'],
+  instagram: ['Choose Instagram in the menu. The picture is attached. The caption is copied: paste it, or write your own.', 'The picture is saved to your downloads and Instagram is opening. Create a post with the picture, then paste the caption or write your own.'],
+  messenger: ['Choose Messenger, Messages, WhatsApp or another app. The picture and message go together (if the message is missing, just paste it).', 'The picture is saved to your downloads and Messenger is opening. Add the picture to your chat and paste the message.'],
+  email:     ['Choose your email app. The picture and message are attached and ready.', 'The picture is saved to your downloads and a new email is opening with the message filled in. Attach the picture from your downloads.']
+};
+async function shareToApp(key, msg, btn, note){
+  const st = shareCurrent; if(!st) return;
+  if(!btn.dataset.label) btn.dataset.label = btn.textContent;
+  copyText(msg);                                         // the message is ready to paste, every time
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent));
+  const fname = (st.p.name||'travel-find').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-'+key+'.jpg';
+  let blob = st.pics[key + '_done'];
+  if(mobile && navigator.share){
+    if(!blob){ btn.textContent='Getting the picture ready...'; blob = await st.pics[key]; st.pics[key+'_done']=blob; btn.textContent='📤 Tap again to share'; note.textContent='The picture is ready. Tap the button again.'; return; }
+    const file = new File([blob], fname, {type:'image/jpeg'});
+    const data = { files:[file] };
+    if(key==='messenger' || key==='email'){ data.text = msg; if(key==='email') data.title = st.texts.emailSubject; }
+    if(navigator.canShare && !navigator.canShare(data)){ delete data.text; }
+    if(!navigator.canShare || navigator.canShare(data)){
+      try{ await navigator.share(data); note.textContent = APP_NEXT[key][0]; btn.textContent = btn.dataset.label; }catch(e){ if(e && e.name!=='AbortError') note.textContent='Sharing didn’t open. Tap the button again.'; }
+      return;
+    }
+  }
+  // computer (or a phone that can't share pictures): save the picture, then open the app
+  if(!blob){ btn.disabled=true; btn.textContent='Making the picture...'; blob = await st.pics[key]; st.pics[key+'_done']=blob; btn.disabled=false; }
+  if(blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },4000); }
+  if(key==='email') location.href = `mailto:?subject=${encodeURIComponent(st.texts.emailSubject)}&body=${encodeURIComponent(msg)}`;
+  else window.open(APP_URL[key], '_blank', 'noopener');
+  note.textContent = APP_NEXT[key][1];
+  btn.textContent = '✓ ' + btn.dataset.label.replace(/^📤 /,'');
+}
 </script>
 </body>
 </html>
