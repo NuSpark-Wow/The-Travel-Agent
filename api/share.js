@@ -2,6 +2,8 @@
 // Facebook, Messenger, LinkedIn, X and texting apps read the hidden tags on this page,
 // so the shared card shows the actual photo of the place, the place name and a "who knew" line.
 // People who click the link are sent straight on to The Travel Agent page on nusparklearnwow.com.
+// The hop is done with a script only: Facebook's reader follows "refresh" tags and canonical links,
+// which made it show the Travel Agent page's card instead of the place photo. It doesn't run scripts.
 // Open to everyone on purpose (Facebook's reader must be able to see it). It only ever shows
 // Wikimedia Commons photos, which are free to reuse with credit.
 
@@ -47,8 +49,6 @@ module.exports = (req, res) => {
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(img)}">
-<meta http-equiv="refresh" content="0;url=${esc(TOOL_PAGE)}">
-<link rel="canonical" href="${esc(TOOL_PAGE)}">
 <style>body{font-family:system-ui,sans-serif;background:#13254a;color:#fff;text-align:center;padding:40px 16px}a{color:#e0b33a}</style>
 </head><body>
 <p>Taking you to The Travel Agent on NuSparkLearnWow...</p>
