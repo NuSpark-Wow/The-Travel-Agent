@@ -145,6 +145,14 @@
   .sharebox{display:none;background:#fff;border:2px solid var(--gold);border-radius:14px;padding:16px;margin:14px 0}
   .sharebox.show{display:block}
   .sharebox h3{text-align:center;margin:0 0 8px;font-family:'Playfair Display',serif;color:var(--navy)}
+  .copies{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .copies .lead{font-size:14px;color:var(--navy);font-weight:700;text-align:center;margin:0}
+  .copy{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#faf8f2}
+  .copy .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+  .copy b{color:var(--navy);font-size:14px}
+  .copy .msg{white-space:pre-wrap;font-size:13px;line-height:1.45;color:#333;word-break:break-word}
+  .copy button{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:13px;cursor:pointer;flex:0 0 auto}
+  .copy button.done{background:#1d7a3a}
   .shbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center}
   .icons{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:6px 0}
   .ico{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--navy);font-weight:700;font-size:13px;cursor:pointer}
@@ -276,6 +284,7 @@
       <a class="ico" id="shEm" aria-label="Email"><span style="background:#6b7280"><svg viewBox="0 0 24 24"><path fill="#fff" d="M3 6h18v12H3V6zm2 2v.3l7 4.4 7-4.4V8H5z"/></svg></span>Email</a>
     </div>
     <p class="shnote" id="shNote"></p>
+    <div class="copies" id="shCopies"></div>
     <div class="shbtns">
       <button class="btn btn-gold" id="shPhotoShare">📷 Share with the photo</button>
       <button class="btn btn-line" id="shClose">Close</button>
@@ -552,7 +561,7 @@ const DOOR_WORD = {secret:'secret spot',unique:'thing to do',museums:'museum',re
 function shareTexts(p){
   const word = DOOR_WORD[state.door] || 'place';
   const town = ((state.place || '').split(',')[0] || '').trim();
-  const link = shareLink(p);
+  const link = 'https://nusparklearnwow.com/the-travel-agent/'; // clean link people can read; the Facebook button uses the photo link
   const tag = town ? '#' + town.replace(/[^A-Za-z0-9]/g,'') : '#WorldTravel';
   // " in Philadelphia" — left off if the town is missing or already in the name (no "Philadelphia Museum of Art in Philadelphia")
   const inTown = town && !p.name.toLowerCase().includes(town.toLowerCase()) ? ` in ${town}` : '';
@@ -599,6 +608,17 @@ function openSharePanel(p, texts){
   $('shSms').href = `sms:?&body=${encodeURIComponent(texts.text)}`;
   $('shEm').href = `mailto:?subject=${encodeURIComponent(texts.emailSubject)}&body=${encodeURIComponent(texts.email)}`;
   $('shNote').textContent = '';
+  // ready-made messages under the icons, each with its own Copy button
+  const shown = [['Facebook post', texts.facebook], ['Instagram caption', texts.instagram], ['Messenger or text message', texts.messenger], ['Email subject', texts.emailSubject], ['Email message', texts.email]];
+  const cp = $('shCopies'); cp.innerHTML = '<p class="lead">Or copy a ready-made message and paste it anywhere:</p>';
+  shown.forEach(([label, msg]) => {
+    const d = document.createElement('div'); d.className = 'copy';
+    d.innerHTML = '<div class="top"><b></b><button type="button">Copy</button></div><div class="msg"></div>';
+    d.querySelector('b').textContent = label; d.querySelector('.msg').textContent = msg;
+    const b = d.querySelector('button');
+    b.onclick = () => { copyText(msg); b.textContent = 'Copied ✓'; b.classList.add('done'); setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 2000); };
+    cp.appendChild(d);
+  });
   // "Share with the photo" only where the phone can attach files
   $('shPhotoShare').style.display = (navigator.share && p._img && p._img.source==='wikimedia') ? 'inline-block' : 'none';
   $('sharebox').classList.add('show');
