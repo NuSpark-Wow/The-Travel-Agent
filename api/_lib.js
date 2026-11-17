@@ -94,7 +94,8 @@ function reason(e) {
   const m = String((e && e.message) || '');
   if (!process.env.ANTHROPIC_API_KEY) return 'Setup needed: ANTHROPIC_API_KEY is missing in Vercel.';
   if (/401|authentication|invalid x-api-key/i.test(m)) return 'Setup needed: the ANTHROPIC_API_KEY in Vercel is not valid.';
-  if (/404|not_found|model/i.test(m)) return 'Setup needed: the AI model name is not available. Set ANTHROPIC_MODEL in Vercel.';
+  if (/AI error 404|not_found_error/i.test(m)) return 'Setup needed: the AI model name (' + MODEL + ') is not available. Fix or remove ANTHROPIC_MODEL in Vercel.';
+  if (/AI error 400/i.test(m)) return 'The AI could not read the request (code 400). Please send Claude a screenshot.';
   if (/429|rate|overloaded|529/i.test(m)) return 'The AI is busy right now. Please try again in a moment.';
   if (/JSON/i.test(m)) return 'The answer came back scrambled. Please try again.';
   return 'Something went wrong. Please try again.';
