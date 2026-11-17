@@ -1,0 +1,7 @@
+{
+  "name": "travel-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Travel Agent - a what's-here-wow discovery tool for NuSparkLearnWow",
+  "engines": { "node": ">=18" }
+}
