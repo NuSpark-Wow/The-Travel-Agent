@@ -126,10 +126,14 @@
   .photocredit:hover{text-decoration:underline}
   .sharebox{display:none;background:#fff;border:2px solid var(--gold);border-radius:14px;padding:16px;margin:14px 0}
   .sharebox.show{display:block}
-  .sharebox h3{margin:0 0 8px;font-family:'Playfair Display',serif;color:var(--navy)}
-  .sharebox textarea{width:100%;min-height:110px;font:inherit;font-size:14px;padding:10px;border-radius:10px;border:1px solid var(--line);resize:vertical}
-  .shbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  .shbtns a{text-decoration:none;display:inline-block}
+  .sharebox h3{text-align:center;margin:0 0 8px;font-family:'Playfair Display',serif;color:var(--navy)}
+  .shbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center}
+  .icons{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:6px 0}
+  .ico{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--navy);font-weight:700;font-size:13px;cursor:pointer}
+  .ico span{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.15)}
+  .ico svg{width:28px;height:28px}
+  .ico:hover span{transform:translateY(-2px)}
+  .shnote{text-align:center;font-size:13px;color:var(--muted);min-height:18px;margin:6px 0 0}
   .more{display:none;gap:10px;justify-content:center;margin:18px 0;flex-wrap:wrap}
 
 
@@ -227,14 +231,16 @@
 
   <div class="sharebox" id="sharebox">
     <h3>Share this find</h3>
-    <textarea id="shText" readonly></textarea>
+    <div class="icons">
+      <a class="ico" id="shFb" target="_blank" rel="noopener" aria-label="Facebook"><span style="background:#1877F2"><svg viewBox="0 0 24 24"><path fill="#fff" d="M14 8h3V4h-3c-2.8 0-4 1.7-4 4.3V10H7v4h3v8h4v-8h3l1-4h-4V8.6c0-.4.3-.6.7-.6z"/></svg></span>Facebook</a>
+      <a class="ico" id="shIg" href="#" aria-label="Instagram"><span style="background:linear-gradient(45deg,#f9a825,#e91e63,#7b1fa2)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3.6" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17" cy="7" r="1.2" fill="#fff"/></svg></span>Instagram</a>
+      <a class="ico" id="shMs" target="_blank" rel="noopener" aria-label="Messenger"><span style="background:linear-gradient(45deg,#0084ff,#a033ff)"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3C7 3 3 6.7 3 11.3c0 2.6 1.3 4.9 3.3 6.4V21l3-1.7c.9.2 1.8.4 2.7.4 5 0 9-3.7 9-8.4S17 3 12 3zm1 11.2-2.3-2.4-4.4 2.4 4.9-5.2 2.3 2.4 4.4-2.4-4.9 5.2z"/></svg></span>Messenger</a>
+      <a class="ico" id="shSms" aria-label="Text message"><span style="background:#34C759"><svg viewBox="0 0 24 24"><path fill="#fff" d="M4 5h16v11H8l-4 4V5z"/></svg></span>Text</a>
+      <a class="ico" id="shEm" aria-label="Email"><span style="background:#6b7280"><svg viewBox="0 0 24 24"><path fill="#fff" d="M3 6h18v12H3V6zm2 2v.3l7 4.4 7-4.4V8H5z"/></svg></span>Email</a>
+    </div>
+    <p class="shnote" id="shNote"></p>
     <div class="shbtns">
-      <a class="btn btn-navy" id="shFb" target="_blank" rel="noopener">Facebook</a>
-      <a class="btn btn-navy" id="shX" target="_blank" rel="noopener">X</a>
-      <a class="btn btn-navy" id="shWa" target="_blank" rel="noopener">WhatsApp</a>
-      <a class="btn btn-navy" id="shEm">Email</a>
-      <button class="btn btn-gold" id="shCopy">Copy message</button>
-      <a class="btn btn-line" id="shPhoto" target="_blank" rel="noopener">Open the photo</a>
+      <button class="btn btn-gold" id="shPhotoShare">📷 Share with the photo</button>
       <button class="btn btn-line" id="shClose">Close</button>
     </div>
   </div>
@@ -437,7 +443,7 @@ function addCard(p){
     </div>`;
   c.querySelector('.listen').onclick=()=>speak(`${p.name}. ${p.wow}. ${p.story} Who knew? ${facts[0]||''}`);
   c.querySelector('.openpage').onclick=()=>openPage(p,c);
-  c.querySelector('.share').onclick=e=>sharePick(p,e.currentTarget);
+  c.querySelector('.share').onclick=()=>sharePick(p);
   $('picks').appendChild(c);
   const ph = c.querySelector('.photo');
   getImage(p.image_query||(p.name+' '+state.place)).then(img=>{
@@ -472,7 +478,7 @@ Share its history, what makes it special, surprising facts, and what visitors se
 Include links to real photos of it, and its official website if it has one.
 Please double-check facts and note anything that may have changed recently.`;
   $('pgAICopy').textContent='Copy';
-  $('pgShare').onclick=e=>sharePick(p,e.currentTarget);
+  $('pgShare').onclick=()=>sharePick(p);
   if(p._img&&p._img.page){ $('pgCredit').href=p._img.page; $('pgCredit').textContent='Photo credit: '+(p._img.credit||'source'); $('pgCredit').style.display='block'; } else $('pgCredit').style.display='none';
   $('pgListen').onclick=()=>speak(`${p.name}. ${p.story} Here's Mr. Paul's take. ${p.paul||''}`);
   // Show the page in place of the picks (works inside an embedded frame - no pop-up)
@@ -514,39 +520,44 @@ async function photoFile(p){
     return new File([blob], p.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.'+ext, {type:blob.type});
   }catch(e){ return null; }
 }
-async function sharePick(p, btn){
-  const text = shareText(p);
-  if(navigator.share){
-    const old = btn.textContent; btn.textContent='Getting photo...';
-    const file = await photoFile(p);
-    btn.textContent = old;
-    try{
-      if(file && navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], text, title:p.name});
-      } else {
-        await navigator.share({text, title:p.name});
-      }
-      return;
-    }catch(e){ if(e && e.name==='AbortError') return; }
-  }
-  openSharePanel(p, text);
-}
+let shareCurrent = null;
+function copyText(t){ try{ return navigator.clipboard.writeText(t); }catch(e){ return Promise.resolve(); } }
+function sharePick(p){ openSharePanel(p, shareText(p)); }
 function openSharePanel(p, text){
+  shareCurrent = {p, text};
   const u = encodeURIComponent(SITE_URL), t = encodeURIComponent(text);
-  $('shText').value = text;
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   $('shFb').href = `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
-  $('shX').href = `https://twitter.com/intent/tweet?text=${t}`;
-  $('shWa').href = `https://wa.me/?text=${t}`;
+  $('shMs').href = mobile ? `fb-messenger://share/?link=${u}` : 'https://www.messenger.com/';
+  $('shSms').href = `sms:?&body=${t}`;
   $('shEm').href = `mailto:?subject=${encodeURIComponent('Check out '+p.name)}&body=${t}`;
-  const img = p._img;
-  $('shPhoto').style.display = img && img.source==='wikimedia' && img.page ? 'inline-block' : 'none';
-  if(img && img.page) $('shPhoto').href = img.page;
-  $('shCopy').textContent='Copy message';
+  $('shNote').textContent = '';
+  // "Share with the photo" only where the phone can attach files
+  $('shPhotoShare').style.display = (navigator.share && p._img && p._img.source==='wikimedia') ? 'inline-block' : 'none';
   $('sharebox').classList.add('show');
   $('sharebox').scrollIntoView({behavior:'smooth',block:'center'});
 }
+// Messenger and Facebook can't take pre-written text, so copy it for pasting
+['shFb','shMs'].forEach(id=>$(id).addEventListener('click',()=>{ if(shareCurrent){ copyText(shareCurrent.text); $('shNote').textContent='Message copied: paste it into your post.'; } }));
+// Instagram has no share link: copy the message and open the photo to save
+$('shIg').onclick=e=>{
+  e.preventDefault(); if(!shareCurrent) return;
+  copyText(shareCurrent.text);
+  const img = shareCurrent.p._img;
+  if(img && img.source==='wikimedia' && img.page){ window.open(img.page,'_blank','noopener'); $('shNote').textContent='Message copied. Save the photo, then post it on Instagram and paste the message.'; }
+  else { window.open('https://www.instagram.com/','_blank','noopener'); $('shNote').textContent='Message copied: paste it into your Instagram post.'; }
+};
+$('shPhotoShare').onclick=async()=>{
+  if(!shareCurrent) return;
+  const {p, text} = shareCurrent;
+  const btn = $('shPhotoShare'); const old = btn.textContent; btn.textContent='Getting photo...';
+  const file = await photoFile(p); btn.textContent = old;
+  try{
+    if(file && navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], text, title:p.name});
+    else await navigator.share({text, title:p.name});
+  }catch(e){}
+};
 $('shClose').onclick=()=>$('sharebox').classList.remove('show');
-$('shCopy').onclick=()=>navigator.clipboard.writeText($('shText').value).then(()=>{ $('shCopy').textContent='Copied!'; });
 
 /* ---------- buttons ---------- */
 $('go').onclick=()=>explore();
