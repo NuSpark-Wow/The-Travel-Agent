@@ -39,6 +39,18 @@
   .btn-gold{background:var(--gold);color:var(--navy)}
   .btn-gold:hover{background:var(--gold2)}
   .btn-navy{background:var(--navy);color:#fff}
+  .listenrow{text-align:center;margin:14px 0 4px}
+  .listen{background:var(--navy);color:#fff;border:none;border-radius:999px;padding:10px 18px;font-weight:800;font-size:15px;cursor:pointer;margin-right:8px}
+  .listen.on{background:var(--gold);color:var(--navy)}
+  .voice-muted .listen,.voice-muted .listenrow{display:none!important}
+  .pbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .vpick{display:flex;border:2px solid var(--navy);border-radius:999px;overflow:hidden}.vpick button{background:#fff;color:var(--navy);border:none;padding:8px 12px;font-weight:800;cursor:pointer;font-size:14px}.vpick button+button{border-left:1px solid #c9cfdb}.vpick button.on{background:var(--navy);color:#fff}
+  .player{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:60;display:none;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:16px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:calc(100% - 24px)}
+  .player.show{display:flex}
+  .player .ptitle{font-weight:800;color:var(--gold2);font-size:14px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .player button{background:#fff;color:var(--navy);border:none;border-radius:999px;padding:7px 14px;font-weight:800;cursor:pointer}
+  .player .pspeed{font-size:13px;display:flex;align-items:center;gap:6px}
+  .player input[type=range]{width:110px;accent-color:var(--gold)}
   .btn-line{background:#fff;color:var(--navy);border:2px solid var(--navy)}
   .examples{font-size:13px;color:#aab6cc;margin-top:6px}
   .kinds{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 10px}
@@ -207,7 +219,7 @@
       <h2 id="placeName"></h2>
       <p class="wowline" id="placeWow"></p>
     </div>
-    <button class="btn btn-line" id="newPlace">New Place</button>
+    <div class="pbtns"><div class="vpick" role="group" aria-label="Choose a voice"><button id="vWoman">👩 Woman</button><button id="vMan">👨 Man</button><button id="vMute">🔇 Mute</button></div><button class="btn btn-line" id="newPlace">New Place</button></div>
   </div>
 
   <div class="overview" id="overview">
@@ -226,6 +238,7 @@
         <div class="whoknew"><h4>Wow...Who Knew?</h4><ul id="ovWho"></ul></div>
       </div>
     </div>
+    <div class="listenrow" id="ovListenRow" style="display:none"><button class="listen" id="ovListen">🔊 Listen to the overview</button></div>
     <a class="photocredit" id="ovPhotoLink" target="_blank" rel="noopener" style="display:none"></a>
     <div class="ovloading" id="ovLoading">Writing the overview...</div>
   </div>
@@ -250,7 +263,7 @@
           <div class="wow" id="pgWow" style="font-size:18px;margin:6px 0 10px"></div>
           <p class="story" id="pgStory"></p>
           <div class="check" id="pgCheck"></div>
-          <div class="cbtns" style="margin-top:12px"><button class="share" id="pgShare">📤 Share</button></div>
+          <div class="cbtns" style="margin-top:12px"><button class="listen" id="pgListen">🔊 Listen</button><button class="share" id="pgShare">📤 Share</button></div>
           <a class="photocredit" id="pgCredit" target="_blank" rel="noopener" style="display:none;margin-top:8px"></a>
         </div>
         <div class="side">
@@ -269,6 +282,12 @@
   </div>
 
 
+<div class="player" id="player" role="region" aria-label="Voice player">
+  <span class="ptitle" id="pTitle">Listening</span>
+  <button id="pPause" aria-label="Pause">⏸ Pause</button>
+  <button id="pStop" aria-label="Stop">■ Stop</button>
+  <label class="pspeed">Speed <input type="range" id="pSpeed" min="0.75" max="1.25" step="0.05" value="1" aria-label="Voice speed"></label>
+</div>
   <div class="more" id="more">
     <button class="btn btn-navy" id="morePicks">Show More Picks</button>
   </div>
@@ -419,18 +438,18 @@ async function loadOverview(place){
   const ov=$('overview'); ov.style.display='block';
   ['ovT1','ovGlance','ovStory','ovSpecial','ovWho'].forEach(id=>$(id).innerHTML='');
   $('ovHero').style.backgroundImage='none'; $('ovCredit').textContent=''; $('ovPhotoLink').style.display='none';
-  document.querySelectorAll('.spread,.ovhero').forEach(e=>e.style.display='none');
+  document.querySelectorAll('.spread,.ovhero').forEach(e=>e.style.display='none'); $('ovListenRow').style.display='none'; voiceStop();
   $('ovLoading').style.display='block'; $('ovLoading').textContent='Writing the overview...';
   try{
     const o = await post('/api/overview',{place, scope});
     if(state.place!==place) return;
-    const short = place.split(',')[0];
+    const short = place.split(',')[0]; state.ov = o;
     $('ovT1').textContent = 'Meet ' + short;
     $('ovGlance').innerHTML = (o.glance||[]).map(g=>`<dt>${esc(g.label)}</dt><dd>${esc(g.value)}</dd>`).join('');
     $('ovStory').innerHTML = (o.story||[]).map(s=>`<p>${esc(s)}</p>`).join('');
     $('ovSpecial').innerHTML = (o.special||[]).map(s=>`<h4>${esc(s.heading)}</h4><p>${esc(s.text)}</p>`).join('');
     $('ovWho').innerHTML = (o.whoknew||[]).map(w=>`<li>${esc(w)}</li>`).join('');
-    $('ovLoading').style.display='none';
+    $('ovLoading').style.display='none'; $('ovListenRow').style.display='block';
     document.querySelector('.spread').style.display='grid';
     $('ovHero').style.display='block';
     const img = await getImage(o.image_query || place);
@@ -516,7 +535,7 @@ function addCard(p){
 /* ---------- full page ---------- */
 let lastCard = null;
 function openPage(p, card){
-  lastCard = card;
+  lastCard = card; state.pagePick = p; voiceStop();
   $('pgName').textContent=p.name; $('pgArea').textContent='📍 '+(p.area||'');
   $('pgWow').textContent=p.wow||''; $('pgStory').textContent=p.story||'';
   $('pgCheck').textContent=p.check?'⚠ Businesses change. Confirm before you go.':'';
@@ -542,7 +561,7 @@ Please double-check facts and note anything that may have changed recently.`;
   $('page').classList.add('show');
   $('page').scrollIntoView({behavior:'smooth',block:'start'});
 }
-function closePage(){
+function closePage(){ if(typeof voiceStop==="function") voiceStop();
   if(!$('page').classList.contains('show')) return;
   $('page').classList.remove('show');
   $('picks').style.display='grid'; $('more').style.display='flex';
@@ -650,13 +669,63 @@ $('shClose').onclick=()=>$('sharebox').classList.remove('show');
 $('go').onclick=()=>explore();
 $('place').addEventListener('keydown',e=>{ if(e.key==='Enter') explore(); });
 $('morePicks').onclick=()=>{ if(state.door) openDoor(state.door,true); };
-$('newPlace').onclick=()=>{
+$('newPlace').onclick=()=>{ voiceStop();
   resetDoorView();
   state.place=null; $('place').value='';
   ['placebar','overview'].forEach(id=>$(id).style.display='none');
   $('doors').style.display='none'; $('pickHead').style.display='none'; $('status').textContent=''; $('choices').innerHTML='';
   $('place').focus({preventScroll:true});
 };
+
+/* ---------- voice: warm narrator, only when someone taps Listen ---------- */
+const V = { audio:new Audio(), queue:[], idx:0, run:0, paused:false, rate:1, muted:false, who:'woman', btn:null };
+try{ const v=localStorage.getItem('ta_voice'); if(v==='mute') V.muted=true; else if(v==='man') V.who='man'; }catch(e){}
+function applyMute(){ document.body.classList.toggle('voice-muted', V.muted);
+  [['vWoman',!V.muted&&V.who==='woman'],['vMan',!V.muted&&V.who==='man'],['vMute',V.muted]].forEach(([id,on])=>{ $(id).classList.toggle('on',on); $(id).setAttribute('aria-pressed',String(on)); }); }
+function setVoice(v){ voiceStop(); if(v==='mute') V.muted=true; else { V.muted=false; V.who=v; } try{ localStorage.setItem('ta_voice', v); }catch(e){} applyMute(); }
+$('vWoman').onclick=()=>setVoice('woman'); $('vMan').onclick=()=>setVoice('man'); $('vMute').onclick=()=>setVoice('mute');
+applyMute();
+function chunks(text){ // short pieces so the voice starts fast
+  const parts = text.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text]; const out=[]; let cur='';
+  parts.forEach(p=>{ if((cur+p).length>700 && cur){ out.push(cur.trim()); cur=''; } cur+=p; }); if(cur.trim()) out.push(cur.trim()); return out;
+}
+async function fetchAudio(t){
+  const r = await fetch('/api/speak',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:t, voice:V.who})});
+  if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||'voice_failed'); }
+  const d = await r.json(); return 'data:audio/mpeg;base64,'+d.audio;
+}
+async function voicePlay(title, text, btn){
+  if(V.muted) return;
+  if(V.btn===btn && $('player').classList.contains('show')){ voiceStop(); return; }   // tapping Listen again stops it
+  voiceStop(); const my = ++V.run; V.btn=btn; if(btn){ btn.classList.add('on'); btn.dataset.lab=btn.textContent; btn.textContent='⏳ Getting ready...'; }
+  V.queue = chunks(text).map(t=>({t, src:null})); V.idx=0; V.paused=false;
+  $('pTitle').textContent='🔊 '+title; $('pPause').textContent='⏸ Pause'; $('player').classList.add('show');
+  const load = i => { const q=V.queue[i]; if(!q || q.p) return; q.p = fetchAudio(q.t).then(src=>q.src=src); };
+  try{
+    for(V.idx=0; V.idx<V.queue.length; V.idx++){
+      load(V.idx); load(V.idx+1);
+      await V.queue[V.idx].p; if(my!==V.run) return;
+      if(btn && V.idx===0) btn.textContent='⏹ Stop listening';
+      await new Promise((res,rej)=>{ V.audio.src=V.queue[V.idx].src; V.audio.playbackRate=V.rate; V.audio.onended=res; V.audio.onerror=rej; V._done=res; V.audio.play().catch(rej); });
+      if(my!==V.run) return;
+    }
+    voiceStop();
+  }catch(e){
+    if(my!==V.run) return; voiceStop();
+    $('status') && ($('status').textContent = e.message==='voice_off' ? 'The voice is turned off right now. The words are all on the screen.' : e.message==='busy' ? 'The voice is taking a short break. Please try again in a little while.' : 'The voice could not play just now. Please try again.');
+  }
+}
+function voiceStop(){ V.run++; try{ V.audio.pause(); }catch(e){} if(V._done){ const d=V._done; V._done=null; d(); }
+  $('player').classList.remove('show'); if(V.btn){ V.btn.classList.remove('on'); if(V.btn.dataset.lab) V.btn.textContent=V.btn.dataset.lab; } V.btn=null; }
+$('pStop').onclick = voiceStop;
+$('pPause').onclick = ()=>{ if(V.audio.paused){ V.audio.play().catch(()=>{}); $('pPause').textContent='⏸ Pause'; } else { V.audio.pause(); $('pPause').textContent='▶ Continue'; } };
+$('pSpeed').oninput = e=>{ V.rate = +e.target.value; V.audio.playbackRate = V.rate; };
+$('ovListen').onclick = ()=>{ const o=state.ov; if(!o) return; const short=(state.place||'').split(',')[0];
+  const text = [`Meet ${short}.`].concat(o.story||[], (o.special||[]).map(x=>x.heading+'. '+x.text), (o.whoknew||[]).length?['Wow, who knew?']:[], o.whoknew||[]).join(' ');
+  voicePlay('Overview of '+short, text, $('ovListen')); };
+$('pgListen').onclick = ()=>{ const p=state.pagePick; if(!p) return;
+  const text = [p.name+'.', p.wow||'', p.story||'', (p.facts||[]).length?'Interesting facts.':'', ...(p.facts||[]), p.paul?("Mr. Paul's take. "+p.paul):''].filter(Boolean).join(' ');
+  voicePlay(p.name, text, $('pgListen')); };
 </script>
 </body>
 </html>
