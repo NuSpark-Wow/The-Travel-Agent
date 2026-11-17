@@ -54,6 +54,29 @@
   .placebar h2{font-family:'Playfair Display',serif;margin:0;font-size:28px;color:var(--navy)}
   .wowline{margin:4px 0 0;color:var(--muted);font-size:16px}
 
+  /* Two-sheet overview */
+  .overview{display:none;margin:10px 0 18px}
+  .ovhero{height:240px;border-radius:16px 16px 0 0;background:#dfe5ef center/cover no-repeat;position:relative;border:3px solid var(--gold);border-bottom:none}
+  .ovhero .credit{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:2px 8px;border-radius:6px}
+  .ovhero .credit:empty{display:none}
+  .spread{display:grid;grid-template-columns:1fr 1fr;background:#fffdf7;border:3px solid var(--gold);border-top:none;border-radius:0 0 16px 16px;overflow:hidden}
+  @media(max-width:760px){.spread{grid-template-columns:1fr}.ovhero{height:180px}}
+  .leaf{padding:20px 22px;position:relative}
+  .sheet1{border-right:2px dashed var(--line)}
+  @media(max-width:760px){.sheet1{border-right:none;border-bottom:2px dashed var(--line)}}
+  .leafnum{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .leaf h3{font-family:'Playfair Display',serif;color:var(--navy);font-size:24px;margin:4px 0 12px}
+  .glance{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0 0 14px;background:#fbf5e4;border-radius:10px;padding:12px}
+  .glance dt{font-weight:800;color:var(--navy);font-size:14px}
+  .glance dd{margin:0;font-size:14px}
+  .leaf p{font-size:15px;line-height:1.6;margin:0 0 10px}
+  .leaf h4{margin:10px 0 4px;color:var(--navy);font-size:16px}
+  .whoknew{background:var(--navy);color:#fff;border-radius:12px;padding:12px 14px;margin-top:12px}
+  .whoknew h4{color:var(--gold2);margin:0 0 6px}
+  .whoknew ul{margin:0;padding-left:18px;font-size:14px;line-height:1.5}
+  .ovloading{text-align:center;font-weight:700;color:var(--navy);padding:10px}
+  .pickhead{font-family:'Playfair Display',serif;color:var(--navy);text-align:center;font-size:24px;margin:8px 0 0}
+
   /* Doors */
   .doors{display:none;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
   @media(max-width:860px){.doors{grid-template-columns:repeat(3,1fr)}}
@@ -66,12 +89,6 @@
   .door[disabled]{opacity:.45;cursor:not-allowed;background:#f1ece0}
   .door .swap{display:block;font-size:12px;color:var(--muted);margin-top:4px;font-weight:600}
 
-  /* Voice controls */
-  .voice{display:none;align-items:center;gap:8px;flex-wrap:wrap;background:var(--navy);color:#fff;border-radius:12px;padding:8px 12px;margin:8px 0 14px}
-  .voice button{background:transparent;border:1px solid var(--gold);color:var(--gold2);border-radius:8px;padding:6px 10px;font-weight:700;font-size:14px}
-  .voice button.on{background:var(--gold);color:var(--navy)}
-  .voice label{font-size:14px;display:flex;align-items:center;gap:6px;margin-left:auto}
-  .voice input[type=range]{width:110px;accent-color:var(--gold)}
 
   /* Picks */
   .doorhead{display:none;margin-top:6px}
@@ -93,10 +110,8 @@
   .fact{background:#fbf5e4;border-left:4px solid var(--gold);padding:8px 10px;border-radius:6px;font-size:14px}
   .fact b{color:var(--navy)}
   .check{font-size:12px;color:#8a3b12;font-weight:700}
-  .listen{align-self:flex-start;margin-top:auto;background:transparent;border:1px solid var(--navy);color:var(--navy);border-radius:8px;padding:5px 10px;font-weight:700;font-size:13px}
   .openpage{align-self:flex-start;margin-top:auto;background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:7px 12px;font-weight:800;font-size:14px}
   .cbtns{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap}
-  .cbtns .listen{margin-top:0}
 
   /* Full book-style page */
   .page{display:none;margin:14px 0}
@@ -179,15 +194,29 @@
     <button class="btn btn-line" id="newPlace">New Place</button>
   </div>
 
+  <div class="overview" id="overview">
+    <div class="ovhero" id="ovHero"><span class="credit" id="ovCredit"></span></div>
+    <div class="spread">
+      <div class="sheet1 leaf">
+        <div class="leafnum">Sheet 1</div>
+        <h3 id="ovT1"></h3>
+        <dl class="glance" id="ovGlance"></dl>
+        <div id="ovStory"></div>
+      </div>
+      <div class="sheet2 leaf">
+        <div class="leafnum">Sheet 2</div>
+        <h3>What Makes It Special</h3>
+        <div id="ovSpecial"></div>
+        <div class="whoknew"><h4>Wow...Who Knew?</h4><ul id="ovWho"></ul></div>
+      </div>
+    </div>
+    <a class="photocredit" id="ovPhotoLink" target="_blank" rel="noopener" style="display:none"></a>
+    <div class="ovloading" id="ovLoading">Writing the overview...</div>
+  </div>
+  <h3 class="pickhead" id="pickHead" style="display:none">Pick a door to explore</h3>
+
   <div class="doors" id="doors"></div>
 
-  <div class="voice" id="voice">
-    <button id="vMute">Mute</button>
-    <button id="vPause">Pause</button>
-    <button id="vCont">Continue</button>
-    <button id="vReplay">Replay</button>
-    <label>Speed <input id="vSpeed" type="range" min="0.75" max="1.5" step="0.05" value="1"> <span id="vSpeedVal">1.0x</span></label>
-  </div>
 
   <div class="doorhead" id="doorhead">
     <h3 id="doorTitle"></h3>
@@ -205,7 +234,7 @@
           <div class="wow" id="pgWow" style="font-size:18px;margin:6px 0 10px"></div>
           <p class="story" id="pgStory"></p>
           <div class="check" id="pgCheck"></div>
-          <div class="cbtns" style="margin-top:12px"><button class="share" id="pgShare">📤 Share</button><button class="listen" id="pgListen">🔊 Listen</button></div>
+          <div class="cbtns" style="margin-top:12px"><button class="share" id="pgShare">📤 Share</button></div>
           <a class="photocredit" id="pgCredit" target="_blank" rel="noopener" style="display:none;margin-top:8px"></a>
         </div>
         <div class="side">
@@ -306,28 +335,6 @@ function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 function sendHeight(){ try{ parent.postMessage({type:'nuspark-resize',height:document.documentElement.scrollHeight},'*'); }catch(e){} }
 new ResizeObserver(sendHeight).observe(document.body);
 
-/* ---------- voice ---------- */
-const audio = new Audio();
-let lastText = '', muted = false;
-async function speak(text){
-  lastText = text;
-  if(muted || !text) return;
-  try{
-    const r = await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-    if(!r.ok) return;
-    const blob = await r.blob();
-    if(audio.src) URL.revokeObjectURL(audio.src);
-    audio.src = URL.createObjectURL(blob);
-    audio.playbackRate = parseFloat($('vSpeed').value);
-    audio.play().catch(()=>{});
-  }catch(e){}
-}
-$('vMute').onclick = ()=>{ muted=!muted; $('vMute').classList.toggle('on',muted); $('vMute').textContent=muted?'Unmute':'Mute'; if(muted) audio.pause(); };
-$('vPause').onclick = ()=> audio.pause();
-$('vCont').onclick = ()=>{ if(!muted) audio.play().catch(()=>{}); };
-$('vReplay').onclick = ()=>{ if(muted) return; if(audio.src){ audio.currentTime=0; audio.play().catch(()=>{}); } else speak(lastText); };
-$('vSpeed').oninput = e=>{ audio.playbackRate=parseFloat(e.target.value); $('vSpeedVal').textContent=parseFloat(e.target.value).toFixed(1)+'x'; };
-
 /* ---------- place type buttons ---------- */
 let kind = '';
 const EXAMPLES = {
@@ -350,6 +357,7 @@ async function explore(forced){
   if(val.length<2){ $('status').textContent='Type a place to explore.'; return; }
   $('go').disabled=true;
   $('status').textContent='Checking what makes this place amazing...';
+  $('overview').style.display='none'; $('pickHead').style.display='none';
   resetDoorView();
   try{
     const d = await post('/api/doors',{place:val, kind});
@@ -375,11 +383,36 @@ async function explore(forced){
     $('placeName').textContent = d.place;
     $('placeWow').textContent = d.wow||'';
     $('placebar').style.display='flex';
-    $('voice').style.display='flex';
     buildDoors(d.doors, d.swaps||{});
-    speak(`${d.place}. ${d.wow||''} Pick a door to see what's here.`);
+    $('pickHead').style.display='block';
+    loadOverview(d.place);
   }catch(e){ $('status').textContent=e.message; }
   finally{ $('go').disabled=false; }
+}
+async function loadOverview(place){
+  const ov=$('overview'); ov.style.display='block';
+  ['ovT1','ovGlance','ovStory','ovSpecial','ovWho'].forEach(id=>$(id).innerHTML='');
+  $('ovHero').style.backgroundImage='none'; $('ovCredit').textContent=''; $('ovPhotoLink').style.display='none';
+  document.querySelectorAll('.spread,.ovhero').forEach(e=>e.style.display='none');
+  $('ovLoading').style.display='block'; $('ovLoading').textContent='Writing the overview...';
+  try{
+    const o = await post('/api/overview',{place});
+    if(state.place!==place) return;
+    const short = place.split(',')[0];
+    $('ovT1').textContent = 'Meet ' + short;
+    $('ovGlance').innerHTML = (o.glance||[]).map(g=>`<dt>${esc(g.label)}</dt><dd>${esc(g.value)}</dd>`).join('');
+    $('ovStory').innerHTML = (o.story||[]).map(s=>`<p>${esc(s)}</p>`).join('');
+    $('ovSpecial').innerHTML = (o.special||[]).map(s=>`<h4>${esc(s.heading)}</h4><p>${esc(s.text)}</p>`).join('');
+    $('ovWho').innerHTML = (o.whoknew||[]).map(w=>`<li>${esc(w)}</li>`).join('');
+    $('ovLoading').style.display='none';
+    document.querySelector('.spread').style.display='grid';
+    $('ovHero').style.display='block';
+    const img = await getImage(o.image_query || place);
+    if(img && img.url){
+      $('ovHero').style.backgroundImage=`url("${img.url}")`; $('ovCredit').textContent=img.credit||'';
+      if(img.page){ $('ovPhotoLink').href=img.page; $('ovPhotoLink').textContent='Photo credit: '+(img.credit||'source'); $('ovPhotoLink').style.display='block'; }
+    } else { $('ovHero').style.display='none'; $('ovHero').nextElementSibling.style.borderTop='3px solid var(--gold)'; $('ovHero').nextElementSibling.style.borderRadius='16px'; }
+  }catch(e){ $('ovLoading').textContent='The overview could not load. The doors below still work.'; }
 }
 function buildDoors(open, swaps){
   const box = $('doors'); box.innerHTML='';
@@ -413,7 +446,7 @@ async function openDoor(id, more=false){
   try{
     const d = await post('/api/picks',{place:state.place, door:id, exclude:state.shown});
     if(state.door!==id) return;
-    if(!more){ $('doorIntro').textContent=d.intro||''; speak(d.intro||''); }
+    if(!more){ $('doorIntro').textContent=d.intro||''; }
     $('working').textContent = (d.picks||[]).length ? '' : 'No more picks for this door. Try another one.';
     (d.picks||[]).forEach(addCard);
     $('more').style.display='flex';
@@ -437,11 +470,9 @@ function addCard(p){
       <div class="cbtns">
         <button class="openpage">📖 Open the Page</button>
         <button class="share">📤 Share</button>
-        <button class="listen">🔊 Listen</button>
       </div>
       <a class="photocredit" target="_blank" rel="noopener" style="display:none"></a>
     </div>`;
-  c.querySelector('.listen').onclick=()=>speak(`${p.name}. ${p.wow}. ${p.story} Who knew? ${facts[0]||''}`);
   c.querySelector('.openpage').onclick=()=>openPage(p,c);
   c.querySelector('.share').onclick=()=>sharePick(p);
   $('picks').appendChild(c);
@@ -480,7 +511,6 @@ Please double-check facts and note anything that may have changed recently.`;
   $('pgAICopy').textContent='Copy';
   $('pgShare').onclick=()=>sharePick(p);
   if(p._img&&p._img.page){ $('pgCredit').href=p._img.page; $('pgCredit').textContent='Photo credit: '+(p._img.credit||'source'); $('pgCredit').style.display='block'; } else $('pgCredit').style.display='none';
-  $('pgListen').onclick=()=>speak(`${p.name}. ${p.story} Here's Mr. Paul's take. ${p.paul||''}`);
   // Show the page in place of the picks (works inside an embedded frame - no pop-up)
   $('picks').style.display='none'; $('more').style.display='none';
   $('page').classList.add('show');
@@ -564,10 +594,10 @@ $('go').onclick=()=>explore();
 $('place').addEventListener('keydown',e=>{ if(e.key==='Enter') explore(); });
 $('morePicks').onclick=()=>{ if(state.door) openDoor(state.door,true); };
 $('newPlace').onclick=()=>{
-  audio.pause(); resetDoorView();
+  resetDoorView();
   state.place=null; $('place').value='';
-  ['placebar','voice'].forEach(id=>$(id).style.display='none');
-  $('doors').style.display='none'; $('status').textContent=''; $('choices').innerHTML='';
+  ['placebar','overview'].forEach(id=>$(id).style.display='none');
+  $('doors').style.display='none'; $('pickHead').style.display='none'; $('status').textContent=''; $('choices').innerHTML='';
   $('place').focus({preventScroll:true});
 };
 </script>
