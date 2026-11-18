@@ -755,8 +755,14 @@ async function makeCardPicture(p, size){
   const [W,H] = CARD_SIZES[size], c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
   try{ await document.fonts.load('800 40px Nunito'); await document.fonts.load('600 20px Nunito'); }catch(e){}
   // photo: the pick's free photo (through our own address), otherwise the Travel Agent banner
-  let im=null; const free = p._img && p._img.source==='wikimedia' && p._img.url;
-  try{ im = await loadImg(free ? '/api/photo?u='+encodeURIComponent(p._img.url) : 'banner1.png'); }catch(e){ try{ im=await loadImg('banner1.png'); }catch(e2){} }
+  let im=null; let free = p._img && p._img.source==='wikimedia' && p._img.url;
+  if(free){
+    // 1) straight from Wikimedia (it allows this), 2) through our own address, 3) give up and use the banner
+    const tries=[p._img.url, '/api/photo?u='+encodeURIComponent(p._img.url)];
+    for(const t of tries){ try{ im = await loadImg(t); break; }catch(e){} }
+    if(!im) free = false;                       // no photo, so no photo credit on the picture
+  }
+  if(!im){ try{ im=await loadImg('banner1.png'); }catch(e){} }
   g.fillStyle='#0f1f3d'; g.fillRect(0,0,W,H);
   if(im){ const s=Math.max(W/im.width,H/im.height), dw=im.width*s, dh=im.height*s; g.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh); }
   const top=g.createLinearGradient(0,0,0,H*0.3); top.addColorStop(0,'rgba(15,31,61,.6)'); top.addColorStop(1,'rgba(15,31,61,0)'); g.fillStyle=top; g.fillRect(0,0,W,H*0.3);
