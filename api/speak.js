@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const woman = process.env.ELEVENLABS_VOICE_ID_WOMAN || DEFAULT_WOMAN, man = process.env.ELEVENLABS_VOICE_ID_MAN || DEFAULT_MAN;
   // Health check you can open in a browser: /api/speak  (never shows the key)
   if (req.method === 'GET') return res.json({ api_key_set: !!key, woman_voice_id: woman, man_voice_id: man });
-  if (!guard(req, res)) return;
+  if (!guard(req, res, 'none')) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   if (!key) return res.status(501).json({ error: 'voice_off' });
 

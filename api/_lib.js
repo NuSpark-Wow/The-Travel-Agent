@@ -19,9 +19,27 @@ function siteAllowed(req) {
   return false;
 }
 
-function guard(req, res) {
+// Per-visitor limits (per hour), by type of request. "none" = no limit here (speak.js has its own).
+const LIMITS = { ai: 40, image: 400, none: 0 };
+const hits = new Map();
+function overLimit(req, bucket) {
+  const max = LIMITS[bucket] || 0; if (!max) return false;
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'x';
+  const key = bucket + '|' + ip, now = Date.now();
+  const list = (hits.get(key) || []).filter(t => now - t < 3600e3);
+  if (list.length >= max) { hits.set(key, list); return true; }
+  list.push(now); hits.set(key, list);
+  if (hits.size > 20000) hits.clear();
+  return false;
+}
+
+function guard(req, res, bucket = 'ai') {
   if (!siteAllowed(req)) {
     res.status(403).json({ error: 'This tool only runs on NuSpark websites.' });
+    return false;
+  }
+  if (overLimit(req, bucket)) {
+    res.status(429).json({ error: "You've explored a lot this hour! Please take a short break and try again in a little while." });
     return false;
   }
   return true;
@@ -66,9 +84,28 @@ async function askJSON(system, user, schema, { useSearch = false, maxTokens = 30
         const t = await r.text();
         throw new Error('AI error ' + r.status + ': ' + t.slice(0, 300));
       }
-      const data = await r.json();
-      const call = (data.content || []).find(b => b.type === 'tool_use' && b.name === 'submit');
+      let data = await r.json();
+      let call = (data.content || []).find(b => b.type === 'tool_use' && b.name === 'submit');
       if (call && call.input) return call.input;
+      // Long web searches can pause partway ("pause_turn"); let the AI keep going, then make it submit.
+      const msgs = [...body.messages];
+      for (let round = 0; round < 3 && !call; round++) {
+        msgs.push({ role: 'assistant', content: data.content });
+        const more = { ...body, messages: msgs };
+        if (data.stop_reason !== 'pause_turn') {
+          msgs.push({ role: 'user', content: 'Now call the submit tool with your final answer, using what you already found.' });
+          more.tool_choice = { type: 'tool', name: 'submit' };
+        }
+        const r2 = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify(more)
+        });
+        if (!r2.ok) { const t = await r2.text(); throw new Error('AI error ' + r2.status + ': ' + t.slice(0, 300)); }
+        data = await r2.json();
+        call = (data.content || []).find(b => b.type === 'tool_use' && b.name === 'submit');
+        if (call && call.input) return call.input;
+      }
       // Backup: the AI wrote JSON as text instead
       const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
       return parseJSON(text);

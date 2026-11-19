@@ -44,7 +44,7 @@ async function serper(q) {
 }
 
 module.exports = async (req, res) => {
-  if (!guard(req, res)) return;
+  if (!guard(req, res, 'image')) return;
   const q = String((req.query && req.query.q) || '').slice(0, 120);
   if (!q) return res.status(400).json({ error: 'Missing search' });
   try {
