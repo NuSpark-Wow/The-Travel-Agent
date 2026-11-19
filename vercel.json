@@ -15,5 +15,10 @@
       "source": "/s",
       "destination": "/api/share"
     }
-  ]
+  ],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 120
+    }
+  }
 }
