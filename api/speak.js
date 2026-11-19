@@ -11,6 +11,7 @@ const hits = new Map();                       // simple per-visitor limit
 const LIMIT = 60;                             // voice requests per visitor per hour
 
 module.exports = async (req, res) => {
+  if (!(await require("./_lwgate")(req, res, "the-travel-agent"))) return;
   const key = process.env.ELEVENLABS_API_KEY;
   const woman = process.env.ELEVENLABS_VOICE_ID_WOMAN || DEFAULT_WOMAN, man = process.env.ELEVENLABS_VOICE_ID_MAN || DEFAULT_MAN;
   // Health check you can open in a browser: /api/speak  (never shows the key)

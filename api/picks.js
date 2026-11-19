@@ -69,6 +69,7 @@ const SCHEMA = {
 };
 
 module.exports = async (req, res) => {
+  if (!(await require("./_lwgate")(req, res, "the-travel-agent"))) return;
   if (!guard(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const { place, door, exclude, scope } = readBody(req);
