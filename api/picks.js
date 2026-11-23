@@ -36,11 +36,12 @@ Rules:
 - Never use the phrase "of a lifetime."
 - "facts": up to 5 true, surprising facts. Only as many as are genuinely true and interesting - never pad. Minimum 1.
 - "nearby": 2-3 real places close by worth seeing, each with a one-line hook (e.g. "A 5-minute walk: Elfreth's Alley, America's oldest residential street"). No directions or travel details.
+- "season": "When It's Most Wow": one short line (under 20 words) on the season or time of day it looks or feels most amazing, and why (e.g. "Fall, when the maples turn the whole valley orange"). General knowledge only; no dates, prices or bookings.
 - "paul": "Mr. Paul's Take" - 2-3 warm, friendly sentences on why you, your kids or your family will love it. Speak as Mr. Paul, a teacher who loves discovery. NEVER claim Mr. Paul personally visited or experienced the place.
 
 Answer shape (for reference):
 {"intro":"2 short spoken sentences introducing this door for this place, warm and exciting (under 45 words)",
-"picks":[{"name":"Exact real name","area":"Neighborhood/area or nearby town","wow":"One punchy wow line (under 15 words)","story":"3-4 sentences on why it's special","facts":["fact 1","fact 2"],"nearby":[{"name":"Real place","hook":"one line"}],"paul":"Mr. Paul's Take","image_query":"Best search words to find a real photo of this exact place","check":false}]}`;
+"picks":[{"name":"Exact real name","area":"Neighborhood/area or nearby town","wow":"One punchy wow line (under 15 words)","story":"3-4 sentences on why it's special","facts":["fact 1","fact 2"],"nearby":[{"name":"Real place","hook":"one line"}],"season":"When it's most wow","paul":"Mr. Paul's Take","image_query":"Best search words to find a real photo of this exact place","check":false}]}`;
 
 const SCHEMA = {
   type: 'object',
@@ -57,11 +58,12 @@ const SCHEMA = {
           story: { type: 'string' },
           facts: { type: 'array', items: { type: 'string' } },
           nearby: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, hook: { type: 'string' } }, required: ['name', 'hook'] } },
+          season: { type: 'string' },
           paul: { type: 'string' },
           image_query: { type: 'string' },
           check: { type: 'boolean' }
         },
-        required: ['name', 'area', 'wow', 'story', 'facts', 'nearby', 'paul', 'image_query', 'check']
+        required: ['name', 'area', 'wow', 'story', 'facts', 'nearby', 'season', 'paul', 'image_query', 'check']
       }
     }
   },

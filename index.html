@@ -359,6 +359,7 @@
         <div class="side">
           <div class="box"><h5>Interesting Facts</h5><ol id="pgFacts"></ol></div>
           <div class="box" id="pgNearBox"><h5>What's Nearby</h5><ul id="pgNear"></ul></div>
+          <div class="box" id="pgSeasonBox"><h5>When It's Most Wow</h5><p id="pgSeason"></p></div>
           <div class="box paul"><h5>Mr. Paul's Take</h5><p id="pgPaul"></p></div>
           <div class="box ai">
             <h5>Learn More with AI</h5>
@@ -380,6 +381,7 @@
 </div>
   <div class="more" id="more">
     <button class="btn btn-navy" id="morePicks">Show More Picks</button>
+    <button class="btn btn-navy" id="wowSheet">🖨 Print my Wow Sheet</button>
   </div>
 
 
@@ -603,6 +605,7 @@ function addCard(p){
       <div class="wow">${esc(p.wow)}</div>
       <p class="story">${esc(p.story)}</p>
       <div class="fact"><b>Who knew?</b> ${esc(facts[0]||'')}</div>
+      ${p.season?`<div class="fact"><b>🍂 Most wow:</b> ${esc(p.season)}</div>`:''}
       ${p.check?'<div class="check">⚠ Businesses change. Confirm before you go.</div>':''}
       <div class="cbtns">
         <button class="openpage">📖 Open the Page</button>
@@ -624,6 +627,18 @@ function addCard(p){
   });
 }
 
+/* ---------- Wow Sheet: a printable one-page list of the picks on screen ---------- */
+$('wowSheet').onclick=()=>{
+  const list=state.picks||[]; if(!list.length) return;
+  const door=(typeof DOORS!=='undefined'&&DOORS.find(x=>x.id===state.door))||{};
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Wow Sheet: '+esc(state.place||'')+'</title><style>body{font-family:Georgia,serif;max-width:760px;margin:24px auto;padding:0 22px;color:#1b2a3a}h1{font-size:26px;margin:0}.sub{font-family:Arial,sans-serif;font-size:12px;color:#667;margin:2px 0 16px}.p{border-top:1px solid #d8dee8;padding:10px 0;page-break-inside:avoid}.p b{font-size:17px}.a{font-family:Arial,sans-serif;font-size:12px;color:#557}.w{font-style:italic;margin:3px 0}.f,.s{font-size:13px;margin:2px 0}.foot{font-family:Arial,sans-serif;font-size:11px;color:#888;margin-top:18px;border-top:1px solid #ccc;padding-top:8px}button{padding:8px 14px;margin-bottom:12px}@media print{button{display:none}}</style></head><body><button onclick="window.print()">🖨 Print</button>'+
+    '<h1>✈️ Wow Sheet: '+esc(state.place||'')+'</h1><div class="sub">'+esc((door.ic||'')+' '+(door.nm||''))+' · The Travel Agent · nusparklearnwow.com</div>'+
+    list.map((p,i)=>'<div class="p"><b>'+(i+1)+'. '+esc(p.name)+'</b><div class="a">📍 '+esc(p.area||'')+'</div><div class="w">'+esc(p.wow||'')+'</div>'+(p.facts&&p.facts[0]?'<div class="f"><b>Who knew?</b> '+esc(p.facts[0])+'</div>':'')+(p.season?'<div class="s"><b>Most wow:</b> '+esc(p.season)+'</div>':'')+(p.check?'<div class="s">⚠ Businesses change. Confirm before you go.</div>':'')+'</div>').join('')+
+    '<div class="foot">AI can make mistakes, so double-check before you go. Made with The Travel Agent at nusparklearnwow.com.</div></body></html>';
+  const w=window.open('','_blank'); if(!w){ $('working').textContent='Allow pop-ups to open your Wow Sheet.'; return; }
+  w.document.open(); w.document.write(html); w.document.close();
+};
+
 /* ---------- full page ---------- */
 let lastCard = null;
 function openPage(p, card){
@@ -636,6 +651,7 @@ function openPage(p, card){
   $('pgNearBox').style.display=near.length?'block':'none';
   $('pgNear').innerHTML=near.map(n=>`<li><b>${esc(n.name)}</b>: ${esc(n.hook)}</li>`).join('');
   $('pgPaul').textContent=p.paul||'';
+  $('pgSeason').textContent=p.season||''; $('pgSeasonBox').style.display=p.season?'block':'none';
   const hero=$('pgHero');
   hero.style.backgroundImage = p._img&&p._img.url?`url("${p._img.url}")`:'none';
   hero.querySelectorAll('.credit').forEach(e=>e.remove());
